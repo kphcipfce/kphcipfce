@@ -43,18 +43,9 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-if (process.env.VERCEL) {
-  // Serverless: Vercel invokes the exported app directly per request, it never calls
-  // .listen(). Mongoose buffers queries by default, so requests that arrive before this
-  // connect() resolves just wait rather than failing.
-  connectDB().catch((err) => console.error("Failed to connect to MongoDB:", err.message));
-} else {
-  connectDB()
-    .then(() => app.listen(PORT, () => console.log(`KP HCIP API listening on :${PORT}`)))
-    .catch((err) => {
-      console.error("Failed to connect to MongoDB:", err.message);
-      process.exit(1);
-    });
-}
-
-export default app;
+connectDB()
+  .then(() => app.listen(PORT, () => console.log(`KP HCIP API listening on :${PORT}`)))
+  .catch((err) => {
+    console.error("Failed to connect to MongoDB:", err.message);
+    process.exit(1);
+  });
