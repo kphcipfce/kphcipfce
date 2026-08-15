@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm -v)",
+      "Bash(mongod --version)",
+      "Bash(npm install *)",
+      "Bash(curl -s -X POST http://localhost:5000/api/auth/bootstrap -H \"Content-Type: application/json\" -d '{\"name\":\"Super Admin\",\"email\":\"super@nexaserve.local\",\"password\":\"password123\"}')",
+      "Bash(node check-photobtns.js)",
+      "Bash(node -e \"console.log\\(require\\('fs'\\).existsSync\\('node_modules/exceljs'\\), require\\('fs'\\).existsSync\\('node_modules/xlsx'\\), require\\('fs'\\).existsSync\\('node_modules/node-xlsx'\\)\\)\")",
+      "Bash(npm run *)",
+      "Bash(node check-export-download.js)"
+    ]
+  }
+}
