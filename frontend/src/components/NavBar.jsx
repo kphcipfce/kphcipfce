@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { IoIosLogOut } from "react-icons/io";
 import { useAuth } from "../context/AuthContext";
 import logo from "../assets/logohcip.png";
 
@@ -26,7 +27,10 @@ export default function NavBar() {
         </span>
         <span className="brand-tagline">Field Community Engagement</span>
       </div>
-      <button onClick={logout}>Log out</button>
+      <button className="btn-logout" onClick={logout}>
+        <IoIosLogOut />
+        Log out
+      </button>
     </nav>
   );
 }

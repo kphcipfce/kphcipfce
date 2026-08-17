@@ -217,6 +217,28 @@ button:disabled {
   border-color: #156429;
 }
 
+.btn-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  border-radius: 999px;
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
+.btn-logout svg {
+  display: block;
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+
+.btn-logout:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
 input,
 select,
 textarea {
@@ -769,7 +791,7 @@ fieldset {
   .brand-logo {
     grid-area: logo;
     justify-self: start;
-    height: 36px;
+    height: 40px;
   }
 
   .who-block {
