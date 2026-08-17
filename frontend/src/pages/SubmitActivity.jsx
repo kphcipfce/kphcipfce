@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { IoDocumentTextOutline } from "react-icons/io5";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
@@ -200,10 +201,11 @@ export default function SubmitActivity() {
   if (weekOptions.length === 0) {
     return (
       <div className="page">
-        <h1>Submit Activity</h1>
-        <p>
-          Your team has no micro plan assigned yet. Contact your Super Admin.
-        </p>
+        <div className="empty-state">
+          <IoDocumentTextOutline />
+          <p>Your team has no micro plan assigned yet.</p>
+          <p>Contact your Super Admin.</p>
+        </div>
       </div>
     );
   }

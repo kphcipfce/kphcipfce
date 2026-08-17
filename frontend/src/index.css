@@ -512,6 +512,75 @@ fieldset {
   color: #1a7f37;
 }
 
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 50vh;
+  text-align: center;
+  color: var(--gray-600);
+}
+
+.empty-state svg {
+  font-size: 2.5rem;
+  color: var(--gray-300);
+  margin-bottom: 0.4rem;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 0.9rem;
+  max-width: 320px;
+}
+
+.team-card {
+  gap: 1.25rem;
+}
+
+.team-card-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.team-card-row-divided {
+  border-top: 1px solid var(--gray-100);
+  padding-top: 1.25rem;
+}
+
+.team-card-icon {
+  flex-shrink: 0;
+  font-size: 1.75rem;
+  color: var(--primary);
+  background: var(--gray-50);
+  border-radius: 50%;
+  padding: 0.4rem;
+}
+
+.team-card-label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--gray-600);
+  font-weight: 600;
+}
+
+.team-card-value {
+  margin: 0.15rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.team-card-sub {
+  margin: 0.15rem 0 0;
+  font-size: 0.85rem;
+  color: var(--gray-600);
+}
+
 /* Verified status, colored by whether attendance is present or someone was marked absent. */
 .status-present {
   color: #1a7f37;
