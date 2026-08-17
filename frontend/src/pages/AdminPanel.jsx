@@ -3,8 +3,9 @@ import api from "../api/client";
 import { useToast } from "../context/ToastContext";
 import Spinner from "../components/Spinner";
 import { EyeIcon, EyeOffIcon } from "../components/icons";
+import { roleLabel } from "../utils/roleLabel";
 
-const TABS = ["Members", "Teams", "Districts", "Micro Plans", "Overview", "Audit Log"];
+const TABS = ["Social Mobilizers", "Teams", "Districts", "Micro Plans", "Overview", "Audit Log"];
 
 export default function AdminPanel() {
   const [tab, setTab] = useState(TABS[0]);
@@ -19,7 +20,7 @@ export default function AdminPanel() {
           </button>
         ))}
       </div>
-      {tab === "Members" && <MembersTab />}
+      {tab === "Social Mobilizers" && <MembersTab />}
       {tab === "Teams" && <TeamsTab />}
       {tab === "Districts" && <DistrictsTab />}
       {tab === "Micro Plans" && <MicroPlansTab />}
@@ -46,10 +47,10 @@ function MembersTab() {
     try {
       await api.post("/members", { ...form, role: "member" });
       setForm({ ...form, name: "", email: "", phone: "", password: "" });
-      showToast("success", "Member created", "The new member can now sign in with their password.");
+      showToast("success", "Social Mobilizer created", "The new social mobilizer can now sign in with their password.");
       load();
     } catch (err) {
-      showToast("error", err.response?.data?.error || "Failed to create member");
+      showToast("error", err.response?.data?.error || "Failed to create social mobilizer");
     }
   }
 
@@ -69,7 +70,7 @@ function MembersTab() {
       await api.patch(`/members/${id}`, { password: newPassword });
       setEditingPasswordId(null);
       setNewPassword("");
-      showToast("success", "Password updated", "The member can sign in with the new password.");
+      showToast("success", "Password updated", "The social mobilizer can sign in with the new password.");
     } catch (err) {
       showToast("error", err.response?.data?.error || "Failed to update password");
     }
@@ -82,7 +83,7 @@ function MembersTab() {
         <input placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
         <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
         <input placeholder="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
-        <button type="submit">Add member</button>
+        <button type="submit">Add Social Mobilizer</button>
       </form>
 
       <div className="table-scroll">
@@ -102,7 +103,7 @@ function MembersTab() {
               <tr key={m._id}>
                 <td>{m.name}</td>
                 <td>{m.email}</td>
-                <td>{m.role}</td>
+                <td>{roleLabel(m.role)}</td>
                 <td>{m.team?.name || "—"}</td>
                 <td>
                   {editingPasswordId === m._id ? (
@@ -202,7 +203,7 @@ function TeamsTab() {
       <form className="card inline-form" onSubmit={createTeam}>
         <input placeholder="Team name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
         <select value={form.memberA} onChange={(e) => setForm({ ...form, memberA: e.target.value })} required>
-          <option value="">Member 1</option>
+          <option value="">Social Mobilizer 1</option>
           {unassigned
             .filter((m) => m._id !== form.memberB)
             .map((m) => (
@@ -212,7 +213,7 @@ function TeamsTab() {
             ))}
         </select>
         <select value={form.memberB} onChange={(e) => setForm({ ...form, memberB: e.target.value })} required>
-          <option value="">Member 2</option>
+          <option value="">Social Mobilizer 2</option>
           {unassigned
             .filter((m) => m._id !== form.memberA)
             .map((m) => (
@@ -229,7 +230,7 @@ function TeamsTab() {
           <thead>
             <tr>
               <th>Team</th>
-              <th>Members</th>
+              <th>Social Mobilizers</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -637,7 +638,7 @@ function AuditLogTab() {
               <td>{new Date(l.createdAt).toLocaleString()}</td>
               <td>{l.actor?.name}</td>
               <td>{l.action}</td>
-              <td>{l.targetEntity}</td>
+              <td>{l.targetEntity === "Member" ? "Social Mobilizer" : l.targetEntity}</td>
             </tr>
           ))}
         </tbody>

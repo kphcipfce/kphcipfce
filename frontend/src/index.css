@@ -659,6 +659,17 @@ fieldset {
   margin: 1rem 0;
 }
 
+.chart-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.chart-col {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
 .stat {
   background: white;
   border: 1px solid var(--gray-100);

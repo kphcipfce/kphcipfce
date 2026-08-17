@@ -1,10 +1,22 @@
 import { useEffect, useState } from "react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import ActivityDetail from "../components/ActivityDetail";
 import { EyeIcon, DownloadIcon } from "../components/icons";
+
+// Fixed hue order per activity type — colors identify the type, so they must stay stable
+// regardless of which types happen to have data for the current filter (validated categorical
+// palette, slots 1-5: blue/orange/aqua/yellow/magenta).
+const ACTIVITY_TYPE_COLORS = {
+  "Maternal & Newborn Care": "#2a78d6",
+  "Child Vaccination Services": "#eb6834",
+  "24/7 Urgent Care": "#1baf7a",
+  "Skilled Doctor Coverage": "#eda100",
+  Other: "#e87ba4",
+};
+const ACTIVITY_TYPES = Object.keys(ACTIVITY_TYPE_COLORS);
 
 // Colors just the Status cell, never the whole row.
 function statusClassName(a) {
@@ -150,17 +162,38 @@ function MonitoringDashboard() {
             </div>
           </div>
 
-          <h3>By District</h3>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={monitoring.byDistrict} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="district" />
-              <YAxis allowDecimals={false} width={40} />
-              <Tooltip />
-              <Bar dataKey="activityCount" fill="#2f6feb" name="Activities" />
-              <Bar dataKey="flagged" fill="#d1453b" name="Flagged" />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="chart-row">
+            <div className="chart-col">
+              <h3>By District</h3>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={monitoring.byDistrict} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="district" />
+                  <YAxis allowDecimals={false} width={40} />
+                  <Tooltip />
+                  <Legend height={60} iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "0.75rem" }} />
+                  <Bar dataKey="activityCount" fill="#2f6feb" name="Activities" />
+                  <Bar dataKey="flagged" fill="#d1453b" name="Flagged" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="chart-col">
+              <h3>By Activity Type</h3>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={monitoring.byDistrictActivityType} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="district" />
+                  <YAxis allowDecimals={false} width={40} />
+                  <Tooltip />
+                  <Legend height={60} iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "0.75rem" }} />
+                  {ACTIVITY_TYPES.map((type) => (
+                    <Bar key={type} dataKey={type} fill={ACTIVITY_TYPE_COLORS[type]} name={type} />
+                  ))}
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
 
           <h3>Attendance rate</h3>
           {(() => {

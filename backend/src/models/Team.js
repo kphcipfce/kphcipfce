@@ -7,7 +7,7 @@ const teamSchema = new mongoose.Schema(
       type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Member" }],
       validate: {
         validator: (v) => v.length === 2,
-        message: "A team can have at most 2 members",
+        message: "A team can have at most 2 social mobilizers",
       },
     },
   },

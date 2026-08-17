@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { IoIosLogOut } from "react-icons/io";
 import { useAuth } from "../context/AuthContext";
+import { roleLabel } from "../utils/roleLabel";
 import logo from "../assets/logohcip.png";
 
 export default function NavBar() {
@@ -23,7 +24,7 @@ export default function NavBar() {
       <span className="spacer" />
       <div className="who-block">
         <span className="who">
-          {user.name} ({user.role})
+          {user.name} ({roleLabel(user.role)})
         </span>
         <span className="brand-tagline">Field Community Engagement</span>
       </div>

@@ -11,15 +11,15 @@ export async function listTeams(req, res) {
 export async function createTeam(req, res) {
   const { name, memberIds } = req.body;
   if (!name || !Array.isArray(memberIds) || memberIds.length !== 2) {
-    return res.status(400).json({ error: "name and exactly 2 memberIds required" });
+    return res.status(400).json({ error: "name and exactly 2 social mobilizers required" });
   }
   const members = await Member.find({ _id: { $in: memberIds } });
-  if (members.length !== 2) return res.status(400).json({ error: "One or both members not found" });
+  if (members.length !== 2) return res.status(400).json({ error: "One or both social mobilizers not found" });
   if (members.some((m) => m.role !== "member")) {
-    return res.status(400).json({ error: "Only members can be paired into a team" });
+    return res.status(400).json({ error: "Only social mobilizers can be paired into a team" });
   }
   if (members.some((m) => m.team)) {
-    return res.status(400).json({ error: "One or both members already belong to a team" });
+    return res.status(400).json({ error: "One or both social mobilizers already belong to a team" });
   }
 
   const team = await Team.create({ name, memberIds });
@@ -37,12 +37,12 @@ export async function updateTeam(req, res) {
 
   if (memberIds !== undefined) {
     if (!Array.isArray(memberIds) || memberIds.length !== 2) {
-      return res.status(400).json({ error: "Exactly 2 memberIds required" });
+      return res.status(400).json({ error: "Exactly 2 social mobilizers required" });
     }
     const members = await Member.find({ _id: { $in: memberIds } });
-    if (members.length !== 2) return res.status(400).json({ error: "One or both members not found" });
+    if (members.length !== 2) return res.status(400).json({ error: "One or both social mobilizers not found" });
     if (members.some((m) => m.role !== "member")) {
-      return res.status(400).json({ error: "Only members can be paired into a team" });
+      return res.status(400).json({ error: "Only social mobilizers can be paired into a team" });
     }
     await Member.updateMany({ team: team._id }, { team: null });
     await Member.updateMany({ _id: { $in: memberIds } }, { team: team._id });

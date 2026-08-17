@@ -61,6 +61,22 @@ export async function monitoring(req, res) {
     { $project: { district: "$district.name", districtId: "$_id", activityCount: 1, verified: 1, flagged: 1 } },
   ]);
 
+  // Same grouping as byDistrict, but split out per activity type too — pivoted here into
+  // one row per district with a count per type, so the chart can render it directly.
+  const districtTypeCounts = await ActivityRecord.aggregate([
+    { $match: match },
+    { $group: { _id: { district: "$district", activityType: "$activityType" }, count: { $sum: 1 } } },
+    { $lookup: { from: "districts", localField: "_id.district", foreignField: "_id", as: "district" } },
+    { $unwind: "$district" },
+    { $project: { district: "$district.name", activityType: "$_id.activityType", count: 1, _id: 0 } },
+  ]);
+  const byDistrictActivityTypeMap = new Map();
+  for (const row of districtTypeCounts) {
+    if (!byDistrictActivityTypeMap.has(row.district)) byDistrictActivityTypeMap.set(row.district, { district: row.district });
+    byDistrictActivityTypeMap.get(row.district)[row.activityType] = row.count;
+  }
+  const byDistrictActivityType = [...byDistrictActivityTypeMap.values()];
+
   // Attendance rate only counts verified activities — a flagged (unconfirmed) record's
   // claimed attendance shouldn't inflate the number, and a merely-submitted one hasn't
   // been checked yet. This overrides any status filter the caller passed in.
@@ -71,7 +87,7 @@ export async function monitoring(req, res) {
   ]);
   const attendanceRate = attendanceAgg[0] ? attendanceAgg[0].present / attendanceAgg[0].total : null;
 
-  res.json({ byTeam, byDistrict, attendanceRate });
+  res.json({ byTeam, byDistrict, byDistrictActivityType, attendanceRate });
 }
 
 // FR-4.1/4.2/4.3: per-team and per-member performance stats.

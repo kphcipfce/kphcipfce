@@ -16,7 +16,7 @@ export async function attachDistrictViewer(district) {
   const password = generatePassword();
   const passwordHash = await bcrypt.hash(password, 10);
   const viewer = await Member.create({
-    name: `${district.name} District Admin`,
+    name: `${district.name} District Coordinator`,
     email: `${slugify(district.name)}@gmail.com`,
     passwordHash,
     role: "district_viewer",
