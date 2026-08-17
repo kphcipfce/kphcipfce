@@ -769,7 +769,7 @@ fieldset {
   .brand-logo {
     grid-area: logo;
     justify-self: start;
-    height: 36px;
+    height: 40px;
   }
 
   .who-block {
