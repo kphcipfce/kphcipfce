@@ -758,9 +758,9 @@ fieldset {
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-areas:
-      "logo who"
-      "links logout";
-    align-items: center;
+      "logo logout"
+      "links who";
+    align-items: start;
     row-gap: 0.5rem;
     column-gap: 1rem;
     padding: 0.75rem 1rem;
