@@ -775,6 +775,8 @@ fieldset {
   .who-block {
     grid-area: who;
     justify-self: end;
+    align-items: flex-end;
+    text-align: right;
   }
 
   .navbar-links {
