@@ -178,6 +178,10 @@ export default function SubmitActivity() {
       setVisitStatus("Completed");
       setDescription("");
       setPhotos([]);
+      setSelectedWeekKey("");
+      // The week just submitted is now occupied — refetch so it drops out of the picker
+      // immediately instead of only after a manual page reload.
+      api.get("/micro-plans").then((res) => setMicroPlans(res.data));
       e.target.reset();
     } catch (err) {
       showToast("error", err.response?.data?.error || "Submission failed");

@@ -452,6 +452,16 @@ function MicroPlansTab() {
     }
   }
 
+  async function removeMicroPlan(id) {
+    try {
+      await api.delete(`/micro-plans/${id}`);
+      showToast("success", "Micro plan removed");
+      load();
+    } catch (err) {
+      showToast("error", err.response?.data?.error || "Failed to delete plan");
+    }
+  }
+
   return (
     <div>
       <form className="card" onSubmit={createPlan}>
@@ -519,6 +529,7 @@ function MicroPlansTab() {
               <th>Assigned Teams</th>
               <th>Weeks</th>
               <th>Created By</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -536,6 +547,11 @@ function MicroPlansTab() {
                   ))}
                 </td>
                 <td>{p.createdBy?.name}</td>
+                <td>
+                  <button type="button" onClick={() => removeMicroPlan(p._id)} aria-label={`Remove ${MONTH_NAMES[p.month - 1]} ${p.year} plan`}>
+                    ×
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

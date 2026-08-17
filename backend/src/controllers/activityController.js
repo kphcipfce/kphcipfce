@@ -94,6 +94,16 @@ export async function createActivity(req, res) {
   }
   if (!plan.weeks.id(microPlanWeek)) return res.status(400).json({ error: "Invalid week for this micro plan" });
 
+  // Mirrors the dropdown filtering in listMicroPlans: a week that's already submitted or
+  // verified is occupied, so this blocks the race where a teammate submits for the same
+  // week from a stale/still-open form before the picker had a chance to hide it.
+  const alreadyOccupied = await ActivityRecord.exists({
+    team: teamId,
+    microPlanWeek,
+    status: { $in: ["submitted", "verified"] },
+  });
+  if (alreadyOccupied) return res.status(409).json({ error: "This week already has a submitted or verified activity" });
+
   const submittedAt = new Date();
   const dateMismatch = !sameCalendarDate(new Date(dateTime), submittedAt);
 

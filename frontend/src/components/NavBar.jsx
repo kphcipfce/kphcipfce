@@ -9,14 +9,16 @@ export default function NavBar() {
   return (
     <nav className="navbar">
       <img src={logo} alt="KP HCIP" className="brand-logo" />
-      {user.role === "member" && (
-        <>
-          <NavLink to="/submit">Submit Activity</NavLink>
-          <NavLink to="/my-team">My Team</NavLink>
-        </>
-      )}
-      <NavLink to="/dashboard">Dashboard</NavLink>
-      {user.role === "super_admin" && <NavLink to="/admin">Admin</NavLink>}
+      <div className="navbar-links">
+        {user.role === "member" && (
+          <>
+            <NavLink to="/submit">Submit Activity</NavLink>
+            <NavLink to="/my-team">My Team</NavLink>
+          </>
+        )}
+        <NavLink to="/dashboard">Dashboard</NavLink>
+        {user.role === "super_admin" && <NavLink to="/admin">Admin</NavLink>}
+      </div>
       <span className="spacer" />
       <div className="who-block">
         <span className="who">

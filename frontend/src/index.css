@@ -230,9 +230,8 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  outline: 2px solid #47c4eb;
-  outline-offset: -1px;
-  border-color: #47c4eb;
+  outline: none;
+  border-color: var(--gray-600);
 }
 
 a {
@@ -246,6 +245,10 @@ a {
   padding: 0.75rem 1.25rem;
   background: var(--accent-light);
   border-bottom: 1px solid var(--gray-100);
+}
+
+.navbar-links {
+  display: contents;
 }
 
 .navbar a {
@@ -616,6 +619,14 @@ fieldset {
   font-size: 0.95rem;
 }
 
+/* Recharts makes its bars/surface focusable for accessibility, which shows a visible
+   focus ring on tap in mobile browsers — this isn't a real interactive control, so drop it. */
+.recharts-wrapper,
+.recharts-wrapper *,
+.recharts-surface {
+  outline: none;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -744,19 +755,43 @@ fieldset {
 
 @media (max-width: 680px) {
   .navbar {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "logo who"
+      "links logout";
+    align-items: center;
     row-gap: 0.5rem;
-    gap: 0.75rem 1rem;
+    column-gap: 1rem;
     padding: 0.75rem 1rem;
   }
 
-  .spacer {
-    flex-basis: 100%;
-    height: 0;
+  .brand-logo {
+    grid-area: logo;
+    justify-self: start;
+    height: 36px;
   }
 
-  .brand-logo {
-    height: 30px;
+  .who-block {
+    grid-area: who;
+    justify-self: end;
+  }
+
+  .navbar-links {
+    grid-area: links;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-self: start;
+  }
+
+  .navbar > button {
+    grid-area: logout;
+    justify-self: end;
+  }
+
+  .spacer {
+    display: none;
   }
 
   .brand-tagline {
