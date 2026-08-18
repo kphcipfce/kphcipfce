@@ -265,6 +265,9 @@ button:disabled {
   display: block;
   flex-shrink: 0;
   font-size: 1rem;
+  color: #fff;
+  fill: #fff;
+  opacity: 1;
 }
 
 .btn-logout:hover {
@@ -404,7 +407,45 @@ a {
 .page.centered .card {
   width: 100%;
   max-width: 360px;
-  padding-bottom: 2rem;
+  border: none;
+  border-radius: 16px;
+  padding: 2rem 1.75rem 2.25rem;
+  gap: 1.1rem;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+.page.centered .login-logo {
+  max-width: 180px;
+}
+
+.page.centered .login-tagline {
+  margin-bottom: 0.25rem;
+}
+
+.page.centered .card label {
+  gap: 0.4rem;
+  font-weight: 600;
+  color: var(--gray-600);
+  font-size: 0.85rem;
+}
+
+.page.centered .card input {
+  padding: 0.65rem 0.8rem;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.page.centered .card input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(47, 111, 235, 0.15);
+}
+
+.page.centered .card button[type="submit"] {
+  margin-top: 0.5rem;
+  padding: 0.7rem 1rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .card {
