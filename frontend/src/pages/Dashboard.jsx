@@ -4,7 +4,9 @@ import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import ActivityDetail from "../components/ActivityDetail";
-import { EyeIcon, DownloadIcon } from "../components/icons";
+import { IoMdDownload } from "react-icons/io";
+import { MdFileDownloadDone } from "react-icons/md";
+import { EyeIcon } from "../components/icons";
 
 // Fixed hue order per activity type — colors identify the type, so they must stay stable
 // regardless of which types happen to have data for the current filter (validated categorical
@@ -93,6 +95,7 @@ function MonitoringDashboard() {
   const [activities, setActivities] = useState([]);
   const [openId, setOpenId] = useState(null);
   const [exporting, setExporting] = useState(false);
+  const [exportDone, setExportDone] = useState(false);
   const [applying, setApplying] = useState(false);
 
   async function load() {
@@ -125,6 +128,8 @@ function MonitoringDashboard() {
       link.click();
       URL.revokeObjectURL(url);
       showToast("success", "Field tracker exported", "The Excel file has started downloading.");
+      setExportDone(true);
+      setTimeout(() => setExportDone(false), 2000);
     } catch (err) {
       showToast("error", err.response?.data?.error || "Failed to export field tracker");
     } finally {
@@ -170,7 +175,7 @@ function MonitoringDashboard() {
             onClick={exportFieldTracker}
           >
             <span className="btn-label">
-              <DownloadIcon />
+              {exportDone ? <MdFileDownloadDone /> : <IoMdDownload />}
               Export Field Tracker
             </span>
             {exporting && <span className="btn-spinner" />}
