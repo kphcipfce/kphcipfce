@@ -57,33 +57,48 @@ export default function ActivityDetail({ activityId, onClose, onStatusChanged, c
   // "Mark Absent" still sets status to "verified" (it's a completed review either way) —
   // so the label shown needs its own check to say "absent" rather than "verified".
   const statusLabel = activity.status === "verified" && attendance.length > 0 && anyAbsent ? "absent" : activity.status;
+  const week = activity.microPlan?.weeks.find((w) => w._id === activity.microPlanWeek);
+
+  const details = [
+    week && ["Planned week", new Date(week.date).toLocaleDateString()],
+    ["Health Facility / Community", activity.healthFacility],
+    ["Planned Activity", activity.plannedActivity],
+    ["Responsible Person", activity.responsiblePerson],
+    ["Target Group", activity.targetGroup],
+    ["Expected Output", activity.expectedOutput],
+    ["Visit Status", activity.visitStatus],
+    activity.description && ["Remarks / Follow-up", activity.description],
+  ].filter(Boolean);
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal card" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>
-          ×
-        </button>
-        <h2>{activity.activityType}</h2>
-        <p>
-          {new Date(activity.dateTime).toLocaleString()} — {activity.team?.name} / {activity.district?.name}
-        </p>
-        <p>
-          Status: <strong className={statusClassName}>{statusLabel}</strong> {activity.statusReason && `(${activity.statusReason})`}
-        </p>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-scroll card">
+          <div className="modal-header">
+            <div>
+              <h2>{activity.activityType}</h2>
+              <p className="modal-subtitle">
+                {new Date(activity.dateTime).toLocaleString()} — {activity.team?.name} / {activity.district?.name}
+              </p>
+            </div>
+            <button className="modal-close" onClick={onClose} aria-label="Close">
+              ×
+            </button>
+          </div>
 
-        {activity.microPlan &&
-          (() => {
-            const week = activity.microPlan.weeks.find((w) => w._id === activity.microPlanWeek);
-            return week ? <p>Planned week: {new Date(week.date).toLocaleDateString()}</p> : null;
-          })()}
-        <p>Health Facility / Community: {activity.healthFacility}</p>
-        <p>Planned Activity: {activity.plannedActivity}</p>
-        <p>Responsible Person: {activity.responsiblePerson}</p>
-        <p>Target Group: {activity.targetGroup}</p>
-        <p>Expected Output: {activity.expectedOutput}</p>
-        <p>Visit Status: {activity.visitStatus}</p>
-        {activity.description && <p>Remarks / Follow-up: {activity.description}</p>}
+          <div>
+            <span className={`status-badge ${statusClassName}`}>{statusLabel}</span>
+            {activity.statusReason && <span className="status-reason">{activity.statusReason}</span>}
+          </div>
+
+        <div className="detail-grid">
+          {details.map(([label, value]) => (
+            <div className="detail-row" key={label}>
+              <span className="detail-label">{label}</span>
+              <span className="detail-value">{value}</span>
+            </div>
+          ))}
+        </div>
 
         {activity.status === "flagged" ? (
           <p className="error">Attendance withheld — this record is flagged and hasn't been confirmed.</p>
@@ -138,6 +153,7 @@ export default function ActivityDetail({ activityId, onClose, onStatusChanged, c
             </button>
           </div>
         )}
+      </div>
       </div>
 
       {previewImage && (

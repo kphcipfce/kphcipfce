@@ -823,25 +823,126 @@ fieldset {
   max-width: 640px;
   width: 100%;
   max-height: 85vh;
-  overflow-y: auto;
   position: relative;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  padding: 0;
+}
+
+.modal-scroll {
+  max-height: 85vh;
+  overflow-y: auto;
+  gap: 1rem;
+  border: none;
+  border-radius: 0;
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.modal-header h2 {
+  margin: 0 0 0.2rem;
+}
+
+.modal-subtitle {
+  margin: 0;
+  color: var(--gray-600);
+  font-size: 0.85rem;
 }
 
 .modal-close {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  background: none;
+  background: var(--gray-100);
   border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--gray-600);
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   padding: 0;
+  flex-shrink: 0;
+}
+
+.modal-close:hover {
+  background: var(--gray-300);
+  color: var(--gray-900);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.status-badge.status-present {
+  background: rgba(26, 127, 55, 0.12);
+}
+
+.status-badge.status-absent {
+  background: rgba(226, 114, 110, 0.12);
+}
+
+.status-badge.status-flagged {
+  background: rgba(184, 134, 11, 0.12);
+}
+
+.status-reason {
+  margin-left: 0.5rem;
+  color: var(--gray-600);
+  font-size: 0.85rem;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.75rem 1.5rem;
+  border-top: 1px solid var(--gray-100);
+  border-bottom: 1px solid var(--gray-100);
+  padding: 0.9rem 0;
+}
+
+.detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.detail-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--gray-600);
+}
+
+.detail-value {
+  font-size: 0.9rem;
+  color: var(--gray-900);
 }
 
 .photo-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 0.75rem;
+}
+
+.photo-card {
+  border: 1px solid var(--gray-100);
+  border-radius: 8px;
+  padding: 0.6rem;
+  background: var(--gray-50);
 }
 
 .photo-card img {
@@ -896,6 +997,8 @@ fieldset {
   gap: 0.5rem;
   align-items: center;
   margin-top: 0.5rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--gray-100);
 }
 
 .moderation button {
