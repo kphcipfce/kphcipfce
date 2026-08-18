@@ -92,18 +92,30 @@ function MonitoringDashboard() {
   const [monitoring, setMonitoring] = useState(null);
   const [activities, setActivities] = useState([]);
   const [openId, setOpenId] = useState(null);
+  const [exporting, setExporting] = useState(false);
+  const [applying, setApplying] = useState(false);
 
-  function load() {
+  async function load() {
+    setApplying(true);
     const params = Object.fromEntries(Object.entries(filters).filter(([, v]) => v));
-    api.get("/dashboard/monitoring", { params }).then((res) => setMonitoring(res.data));
-    api.get("/activities", { params }).then((res) => setActivities(res.data));
+    try {
+      await Promise.all([
+        api.get("/dashboard/monitoring", { params }).then((res) => setMonitoring(res.data)),
+        api.get("/activities", { params }).then((res) => setActivities(res.data)),
+      ]);
+    } finally {
+      setApplying(false);
+    }
   }
 
-  useEffect(load, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    load();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A plain <a href> can't carry the Authorization header the API requires, so the file
   // is fetched with the authenticated client and handed to the browser as a blob instead.
   async function exportFieldTracker() {
+    setExporting(true);
     try {
       const res = await api.get("/dashboard/export.xlsx", { responseType: "blob" });
       const url = URL.createObjectURL(res.data);
@@ -115,6 +127,8 @@ function MonitoringDashboard() {
       showToast("success", "Field tracker exported", "The Excel file has started downloading.");
     } catch (err) {
       showToast("error", err.response?.data?.error || "Failed to export field tracker");
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -144,11 +158,22 @@ function MonitoringDashboard() {
             <option value="flagged">Flagged</option>
           </select>
         </label>
-        <button type="submit">Apply</button>
+        <button type="submit" disabled={applying} className={applying ? "btn-loading" : ""}>
+          <span className="btn-label">Apply</span>
+          {applying && <span className="btn-spinner" />}
+        </button>
         {canModerate && (
-          <button type="button" className="btn-export" onClick={exportFieldTracker}>
-            <DownloadIcon />
-            Export Field Tracker
+          <button
+            type="button"
+            className={`btn-export ${exporting ? "btn-loading" : ""}`}
+            disabled={exporting}
+            onClick={exportFieldTracker}
+          >
+            <span className="btn-label">
+              <DownloadIcon />
+              Export Field Tracker
+            </span>
+            {exporting && <span className="btn-spinner" />}
           </button>
         )}
       </form>

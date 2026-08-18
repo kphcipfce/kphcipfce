@@ -7,12 +7,14 @@ export default function ActivityDetail({ activityId, onClose, onStatusChanged, c
   const [data, setData] = useState(null);
   const [reason, setReason] = useState("");
   const [previewImage, setPreviewImage] = useState(null);
+  const [busyAction, setBusyAction] = useState(null); // "present" | "flag" | "absent" | null
 
   useEffect(() => {
     api.get(`/activities/${activityId}`).then((res) => setData(res.data));
   }, [activityId]);
 
   async function setStatus(status) {
+    setBusyAction("flag");
     try {
       await api.patch(`/activities/${activityId}/status`, { status, statusReason: reason });
       const res = await api.get(`/activities/${activityId}`);
@@ -21,10 +23,13 @@ export default function ActivityDetail({ activityId, onClose, onStatusChanged, c
       onStatusChanged?.();
     } catch (err) {
       showToast("error", err.response?.data?.error || "Failed to flag record");
+    } finally {
+      setBusyAction(null);
     }
   }
 
   async function setAttendance(present) {
+    setBusyAction(present ? "present" : "absent");
     try {
       await api.patch(`/activities/${activityId}/attendance`, { present });
       const res = await api.get(`/activities/${activityId}`);
@@ -33,6 +38,8 @@ export default function ActivityDetail({ activityId, onClose, onStatusChanged, c
       onStatusChanged?.();
     } catch (err) {
       showToast("error", err.response?.data?.error || "Failed to update attendance");
+    } finally {
+      setBusyAction(null);
     }
   }
 
@@ -109,9 +116,26 @@ export default function ActivityDetail({ activityId, onClose, onStatusChanged, c
         {canModerate && (
           <div className="moderation">
             <input placeholder="Reason (optional)" value={reason} onChange={(e) => setReason(e.target.value)} />
-            <button onClick={() => setAttendance(true)}>Mark Present</button>
-            <button onClick={() => setStatus("flagged")}>Flag</button>
-            <button onClick={() => setAttendance(false)}>Mark Absent</button>
+            <button
+              disabled={!!busyAction}
+              className={busyAction === "present" ? "btn-loading" : ""}
+              onClick={() => setAttendance(true)}
+            >
+              <span className="btn-label">Mark Present</span>
+              {busyAction === "present" && <span className="btn-spinner" />}
+            </button>
+            <button disabled={!!busyAction} className={busyAction === "flag" ? "btn-loading" : ""} onClick={() => setStatus("flagged")}>
+              <span className="btn-label">Flag</span>
+              {busyAction === "flag" && <span className="btn-spinner" />}
+            </button>
+            <button
+              disabled={!!busyAction}
+              className={busyAction === "absent" ? "btn-loading" : ""}
+              onClick={() => setAttendance(false)}
+            >
+              <span className="btn-label">Mark Absent</span>
+              {busyAction === "absent" && <span className="btn-spinner" />}
+            </button>
           </div>
         )}
       </div>

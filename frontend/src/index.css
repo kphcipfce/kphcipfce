@@ -5,13 +5,13 @@
   --gray-100: #eceef0;
   --gray-300: #c8ccd1;
   --gray-600: #5b6470;
-  --gray-900: #1c1f24;
+  --gray-900: #343a40;
   --accent-light: #cceef8;
   font-family:
+    Inter,
     system-ui,
     -apple-system,
     Segoe UI,
-    Roboto,
     sans-serif;
   color: var(--gray-900);
 }
@@ -191,11 +191,38 @@ button {
   color: white;
   border-radius: 4px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 button:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+.btn-loading {
+  position: relative;
+}
+
+.btn-loading .btn-label {
+  visibility: hidden;
+}
+
+.btn-loading .btn-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-top: -7px;
+  margin-left: -7px;
+}
+
+.btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
 }
 
 .btn-export {
@@ -210,6 +237,12 @@ button:disabled {
 .btn-export svg {
   display: block;
   flex-shrink: 0;
+}
+
+.btn-export .btn-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .btn-export:hover {
@@ -274,26 +307,31 @@ a {
 }
 
 .navbar a {
-  color: var(--gray-900);
+  color: var(--gray-600);
   text-decoration: none;
   font-size: 0.95rem;
-  padding: 0.4rem 0.75rem;
-  border-radius: 4px;
-  background: var(--gray-100);
+  font-weight: 500;
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.55);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .navbar a:hover {
-  background: var(--gray-300);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--gray-900);
 }
 
 .navbar a.active {
-  background: #1a7f37;
+  background: var(--primary);
   color: white;
   font-weight: 600;
 }
 
 .navbar a.active:hover {
-  background: #1a7f37;
+  background: var(--primary);
 }
 
 .brand-logo {
@@ -321,8 +359,9 @@ a {
   text-align: center;
   color: var(--gray-600);
   font-size: 0.9rem;
-  font-style: italic;
   margin: 0;
+  font-weight: 600;
+  /* font-style: italic; */
 }
 
 .spacer {
@@ -812,9 +851,14 @@ fieldset {
 
 .moderation {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   align-items: center;
   margin-top: 0.5rem;
+}
+
+.moderation button {
+  flex-shrink: 0;
 }
 
 .moderation input {
@@ -933,10 +977,6 @@ fieldset {
   }
 
   .tabs {
-    flex-wrap: wrap;
-  }
-
-  .moderation {
     flex-wrap: wrap;
   }
 

@@ -46,8 +46,9 @@ export default function Login() {
           Password
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </label>
-        <button type="submit" disabled={busy}>
-          {busy ? "Signing in…" : "Sign in"}
+        <button type="submit" disabled={busy} className={busy ? "btn-loading" : ""}>
+          <span className="btn-label">Sign in</span>
+          {busy && <span className="btn-spinner" />}
         </button>
       </form>
     </div>

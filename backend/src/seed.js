@@ -37,11 +37,12 @@ async function seed() {
   const passwordHash = await bcrypt.hash(PASSWORD, 10);
   const districtNames = Object.keys(MEMBERS_BY_DISTRICT);
 
-  // Districts still exist as the reference list a member picks from at submission time —
-  // just no longer owned by any Team or Member. Each also gets its own read-only
-  // district_viewer login, same as districts created through the admin panel.
+  // Each district also gets its own read-only district_viewer login, same as districts
+  // created through the admin panel.
+  const districtIdByName = {};
   for (const name of districtNames) {
     const district = await District.create({ name });
+    districtIdByName[name] = district._id;
     await attachDistrictViewer(district);
     await district.save();
     console.log(`${name} district_viewer password: ${district.viewerPassword}`);
@@ -73,6 +74,7 @@ async function seed() {
     const team = await Team.create({
       name: `${name} Team`,
       memberIds: [m1._id, m2._id],
+      district: districtIdByName[name],
     });
     await Member.updateMany({ _id: { $in: [m1._id, m2._id] } }, { team: team._id });
 

@@ -36,6 +36,8 @@ function MembersTab() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
   const [editingPasswordId, setEditingPasswordId] = useState(null);
   const [newPassword, setNewPassword] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
 
   function load() {
     api.get("/members").then((res) => setMembers(res.data));
@@ -44,6 +46,7 @@ function MembersTab() {
 
   async function createMember(e) {
     e.preventDefault();
+    setCreating(true);
     try {
       await api.post("/members", { ...form, role: "member" });
       setForm({ ...form, name: "", email: "", phone: "", password: "" });
@@ -51,6 +54,8 @@ function MembersTab() {
       load();
     } catch (err) {
       showToast("error", err.response?.data?.error || "Failed to create social mobilizer");
+    } finally {
+      setCreating(false);
     }
   }
 
@@ -66,6 +71,7 @@ function MembersTab() {
 
   async function savePassword(id) {
     if (!newPassword) return showToast("error", "Enter a new password");
+    setSavingPassword(true);
     try {
       await api.patch(`/members/${id}`, { password: newPassword });
       setEditingPasswordId(null);
@@ -73,6 +79,8 @@ function MembersTab() {
       showToast("success", "Password updated", "The social mobilizer can sign in with the new password.");
     } catch (err) {
       showToast("error", err.response?.data?.error || "Failed to update password");
+    } finally {
+      setSavingPassword(false);
     }
   }
 
@@ -83,7 +91,10 @@ function MembersTab() {
         <input placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
         <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
         <input placeholder="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
-        <button type="submit">Add Social Mobilizer</button>
+        <button type="submit" disabled={creating} className={creating ? "btn-loading" : ""}>
+          <span className="btn-label">Add Social Mobilizer</span>
+          {creating && <span className="btn-spinner" />}
+        </button>
       </form>
 
       <div className="table-scroll">
@@ -115,8 +126,14 @@ function MembersTab() {
                         onChange={(e) => setNewPassword(e.target.value)}
                         autoFocus
                       />
-                      <button type="button" onClick={() => savePassword(m._id)}>
-                        Save
+                      <button
+                        type="button"
+                        disabled={savingPassword}
+                        className={savingPassword ? "btn-loading" : ""}
+                        onClick={() => savePassword(m._id)}
+                      >
+                        <span className="btn-label">Save</span>
+                        {savingPassword && <span className="btn-spinner" />}
                       </button>
                       <button
                         type="button"
@@ -154,13 +171,17 @@ function TeamsTab() {
   const { showToast } = useToast();
   const [teams, setTeams] = useState([]);
   const [members, setMembers] = useState([]);
-  const [form, setForm] = useState({ name: "", memberA: "", memberB: "" });
+  const [districts, setDistricts] = useState([]);
+  const [form, setForm] = useState({ name: "", memberA: "", memberB: "", district: "" });
   const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({ memberA: "", memberB: "" });
+  const [editForm, setEditForm] = useState({ memberA: "", memberB: "", district: "" });
+  const [creating, setCreating] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   function load() {
     api.get("/teams").then((res) => setTeams(res.data));
     api.get("/members").then((res) => setMembers(res.data));
+    api.get("/districts").then((res) => setDistricts(res.data));
   }
   useEffect(load, []);
 
@@ -172,29 +193,35 @@ function TeamsTab() {
 
   async function createTeam(e) {
     e.preventDefault();
+    setCreating(true);
     try {
-      await api.post("/teams", { name: form.name, memberIds: [form.memberA, form.memberB] });
-      setForm({ ...form, name: "", memberA: "", memberB: "" });
+      await api.post("/teams", { name: form.name, memberIds: [form.memberA, form.memberB], district: form.district });
+      setForm({ ...form, name: "", memberA: "", memberB: "", district: "" });
       showToast("success", "Team created", "The team is ready to submit activities.");
       load();
     } catch (err) {
       showToast("error", err.response?.data?.error || "Failed to create team");
+    } finally {
+      setCreating(false);
     }
   }
 
   function startEdit(t) {
     setEditingId(t._id);
-    setEditForm({ memberA: t.memberIds[0]._id, memberB: t.memberIds[1]._id });
+    setEditForm({ memberA: t.memberIds[0]._id, memberB: t.memberIds[1]._id, district: t.district?._id || "" });
   }
 
   async function saveEdit(t) {
+    setSavingEdit(true);
     try {
-      await api.patch(`/teams/${t._id}`, { memberIds: [editForm.memberA, editForm.memberB] });
+      await api.patch(`/teams/${t._id}`, { memberIds: [editForm.memberA, editForm.memberB], district: editForm.district });
       setEditingId(null);
       showToast("success", "Team updated", "Membership changes saved.");
       load();
     } catch (err) {
       showToast("error", err.response?.data?.error || "Failed to update team");
+    } finally {
+      setSavingEdit(false);
     }
   }
 
@@ -222,7 +249,18 @@ function TeamsTab() {
               </option>
             ))}
         </select>
-        <button type="submit">Create team</button>
+        <select value={form.district} onChange={(e) => setForm({ ...form, district: e.target.value })} required>
+          <option value="">District</option>
+          {districts.map((d) => (
+            <option key={d._id} value={d._id}>
+              {d.name}
+            </option>
+          ))}
+        </select>
+        <button type="submit" disabled={creating} className={creating ? "btn-loading" : ""}>
+          <span className="btn-label">Create team</span>
+          {creating && <span className="btn-spinner" />}
+        </button>
       </form>
 
       <div className="table-scroll">
@@ -230,6 +268,7 @@ function TeamsTab() {
           <thead>
             <tr>
               <th>Team</th>
+              <th>District</th>
               <th>Social Mobilizers</th>
               <th>Actions</th>
             </tr>
@@ -238,6 +277,19 @@ function TeamsTab() {
             {teams.map((t) => (
                 <tr key={t._id}>
                   <td>{t.name}</td>
+                  <td>
+                    {editingId === t._id ? (
+                      <select value={editForm.district} onChange={(e) => setEditForm({ ...editForm, district: e.target.value })}>
+                        {districts.map((d) => (
+                          <option key={d._id} value={d._id}>
+                            {d.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      t.district?.name || "—"
+                    )}
+                  </td>
                   <td>
                     {editingId === t._id ? (
                       <div className="inline-form">
@@ -267,7 +319,13 @@ function TeamsTab() {
                   <td>
                     {editingId === t._id ? (
                       <>
-                        <button onClick={() => saveEdit(t)}>Save</button> <button onClick={() => setEditingId(null)}>Cancel</button>
+                        <button disabled={savingEdit} className={savingEdit ? "btn-loading" : ""} onClick={() => saveEdit(t)}>
+                          <span className="btn-label">Save</span>
+                          {savingEdit && <span className="btn-spinner" />}
+                        </button>{" "}
+                        <button disabled={savingEdit} onClick={() => setEditingId(null)}>
+                          Cancel
+                        </button>
                       </>
                     ) : (
                       <button onClick={() => startEdit(t)}>Edit</button>
@@ -288,6 +346,9 @@ function DistrictsTab() {
   const [name, setName] = useState("");
   const [openViewerId, setOpenViewerId] = useState(null);
   const [viewerPassword, setViewerPassword] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [removingId, setRemovingId] = useState(null);
+  const [savingViewerPassword, setSavingViewerPassword] = useState(false);
 
   function load() {
     api.get("/districts").then((res) => setDistricts(res.data));
@@ -296,6 +357,7 @@ function DistrictsTab() {
 
   async function createDistrict(e) {
     e.preventDefault();
+    setCreating(true);
     try {
       await api.post("/districts", { name });
       setName("");
@@ -303,16 +365,21 @@ function DistrictsTab() {
       load();
     } catch (err) {
       showToast("error", err.response?.data?.error || "Failed to create district");
+    } finally {
+      setCreating(false);
     }
   }
 
   async function removeDistrict(id) {
+    setRemovingId(id);
     try {
       await api.delete(`/districts/${id}`);
       showToast("success", "District removed");
       load();
     } catch (err) {
       showToast("error", err.response?.data?.error || "Failed to delete district");
+    } finally {
+      setRemovingId(null);
     }
   }
 
@@ -326,6 +393,7 @@ function DistrictsTab() {
 
   async function saveViewerPassword(id) {
     if (!viewerPassword) return showToast("error", "Enter a password");
+    setSavingViewerPassword(true);
     try {
       await api.patch(`/districts/${id}/viewer-password`, { password: viewerPassword });
       setOpenViewerId(null);
@@ -333,6 +401,8 @@ function DistrictsTab() {
       load();
     } catch (err) {
       showToast("error", err.response?.data?.error || "Failed to update password");
+    } finally {
+      setSavingViewerPassword(false);
     }
   }
 
@@ -340,7 +410,10 @@ function DistrictsTab() {
     <div>
       <form className="card inline-form" onSubmit={createDistrict}>
         <input placeholder="District name" value={name} onChange={(e) => setName(e.target.value)} required />
-        <button type="submit">Add district</button>
+        <button type="submit" disabled={creating} className={creating ? "btn-loading" : ""}>
+          <span className="btn-label">Add district</span>
+          {creating && <span className="btn-spinner" />}
+        </button>
       </form>
       <div className="table-scroll">
         <table className="table">
@@ -360,8 +433,14 @@ function DistrictsTab() {
                     <div className="password-edit">
                       <span>{d.viewerMember?.email}</span>
                       <input type="text" value={viewerPassword} onChange={(e) => setViewerPassword(e.target.value)} autoFocus />
-                      <button type="button" onClick={() => saveViewerPassword(d._id)}>
-                        Save
+                      <button
+                        type="button"
+                        disabled={savingViewerPassword}
+                        className={savingViewerPassword ? "btn-loading" : ""}
+                        onClick={() => saveViewerPassword(d._id)}
+                      >
+                        <span className="btn-label">Save</span>
+                        {savingViewerPassword && <span className="btn-spinner" />}
                       </button>
                       <button type="button" className="icon-btn" onClick={() => toggleViewer(d)} aria-label={`Close viewer login for ${d.name}`}>
                         <EyeOffIcon />
@@ -374,8 +453,15 @@ function DistrictsTab() {
                   )}
                 </td>
                 <td>
-                  <button type="button" onClick={() => removeDistrict(d._id)} aria-label={`Remove ${d.name}`}>
-                    ×
+                  <button
+                    type="button"
+                    disabled={removingId === d._id}
+                    className={removingId === d._id ? "btn-loading" : ""}
+                    onClick={() => removeDistrict(d._id)}
+                    aria-label={`Remove ${d.name}`}
+                  >
+                    <span className="btn-label">×</span>
+                    {removingId === d._id && <span className="btn-spinner" />}
                   </button>
                 </td>
               </tr>
@@ -417,6 +503,8 @@ function MicroPlansTab() {
     weeks: [emptyWeek(), emptyWeek(), emptyWeek(), emptyWeek()],
     teamIds: [],
   });
+  const [creating, setCreating] = useState(false);
+  const [removingId, setRemovingId] = useState(null);
 
   function load() {
     api.get("/micro-plans").then((res) => setPlans(res.data));
@@ -438,6 +526,7 @@ function MicroPlansTab() {
 
   async function createPlan(e) {
     e.preventDefault();
+    setCreating(true);
     try {
       await api.post("/micro-plans", {
         month: Number(form.month),
@@ -450,16 +539,21 @@ function MicroPlansTab() {
       load();
     } catch (err) {
       showToast("error", err.response?.data?.error || "Failed to create plan");
+    } finally {
+      setCreating(false);
     }
   }
 
   async function removeMicroPlan(id) {
+    setRemovingId(id);
     try {
       await api.delete(`/micro-plans/${id}`);
       showToast("success", "Micro plan removed");
       load();
     } catch (err) {
       showToast("error", err.response?.data?.error || "Failed to delete plan");
+    } finally {
+      setRemovingId(null);
     }
   }
 
@@ -519,7 +613,10 @@ function MicroPlansTab() {
           </select>
         </label>
 
-        <button type="submit">Create plan</button>
+        <button type="submit" disabled={creating} className={creating ? "btn-loading" : ""}>
+          <span className="btn-label">Create plan</span>
+          {creating && <span className="btn-spinner" />}
+        </button>
       </form>
 
       <div className="table-scroll">
@@ -549,8 +646,15 @@ function MicroPlansTab() {
                 </td>
                 <td>{p.createdBy?.name}</td>
                 <td>
-                  <button type="button" onClick={() => removeMicroPlan(p._id)} aria-label={`Remove ${MONTH_NAMES[p.month - 1]} ${p.year} plan`}>
-                    ×
+                  <button
+                    type="button"
+                    disabled={removingId === p._id}
+                    className={removingId === p._id ? "btn-loading" : ""}
+                    onClick={() => removeMicroPlan(p._id)}
+                    aria-label={`Remove ${MONTH_NAMES[p.month - 1]} ${p.year} plan`}
+                  >
+                    <span className="btn-label">×</span>
+                    {removingId === p._id && <span className="btn-spinner" />}
                   </button>
                 </td>
               </tr>

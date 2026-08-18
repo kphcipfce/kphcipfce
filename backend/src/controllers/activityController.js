@@ -3,7 +3,7 @@ import { Readable } from "node:stream";
 import exifr from "exifr";
 import ActivityRecord from "../models/ActivityRecord.js";
 import MicroPlan from "../models/MicroPlan.js";
-import District from "../models/District.js";
+import Team from "../models/Team.js";
 import AttendanceEntry from "../models/AttendanceEntry.js";
 import ImageMetadata from "../models/ImageMetadata.js";
 import { logAction } from "../middleware/audit.js";
@@ -51,7 +51,6 @@ export async function createActivity(req, res) {
     attendeeIds,
     gpsLat,
     gpsLong,
-    district,
     healthFacility,
     plannedActivity,
     responsiblePerson,
@@ -67,7 +66,6 @@ export async function createActivity(req, res) {
   if (
     !dateTime ||
     !activityType ||
-    !district ||
     !healthFacility ||
     !plannedActivity ||
     !responsiblePerson ||
@@ -76,14 +74,15 @@ export async function createActivity(req, res) {
     !microPlan ||
     !microPlanWeek
   ) {
-    return res.status(400).json({ error: "dateTime, activityType, district, and all plan/report fields are required" });
+    return res.status(400).json({ error: "dateTime, activityType, and all plan/report fields are required" });
   }
   if (!req.files || req.files.length === 0) return res.status(400).json({ error: "At least one photo required" });
 
-  // District is chosen by the field worker per visit, not inherited — still validated
-  // against the real District list rather than trusting an arbitrary client-sent id.
-  const districtDoc = await District.findById(district);
-  if (!districtDoc) return res.status(400).json({ error: "District not found" });
+  // A team works a single district — every activity it submits inherits that, rather than
+  // the field worker picking one per visit.
+  const team = await Team.findById(teamId);
+  if (!team) return res.status(400).json({ error: "Team not found" });
+  const district = team.district;
 
   // Defense in depth: verify the referenced plan/week is real and actually assigned to this
   // member's team, rather than trusting whatever IDs the client happens to send.

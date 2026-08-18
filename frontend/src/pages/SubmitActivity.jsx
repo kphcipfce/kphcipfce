@@ -43,8 +43,6 @@ export default function SubmitActivity() {
   const { showToast } = useToast();
   const [teammate, setTeammate] = useState(null);
   const [microPlans, setMicroPlans] = useState(null); // null = still loading, [] = loaded but none assigned
-  const [districts, setDistricts] = useState([]);
-  const [district, setDistrict] = useState("");
   const [date, setDate] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -69,7 +67,6 @@ export default function SubmitActivity() {
   useEffect(() => {
     api.get("/members/my-team").then((res) => setTeammate(res.data.teammate));
     api.get("/micro-plans").then((res) => setMicroPlans(res.data));
-    api.get("/districts").then((res) => setDistricts(res.data));
   }, []);
 
   const weekOptions = useMemo(
@@ -109,7 +106,6 @@ export default function SubmitActivity() {
     e.preventDefault();
     if (!selectedWeek)
       return showToast("error", "Select which planned week you're fulfilling.");
-    if (!district) return showToast("error", "Select a district.");
     if (photos.length === 0)
       return showToast("error", "At least one photo is required.");
     setBusy(true);
@@ -136,7 +132,6 @@ export default function SubmitActivity() {
       form.append("activityType", activityType);
       form.append("microPlan", selectedWeek.planId);
       form.append("microPlanWeek", selectedWeek.weekId);
-      form.append("district", district);
       form.append("healthFacility", healthFacility);
       form.append("plannedActivity", plannedActivity);
       form.append("responsiblePerson", responsiblePerson);
@@ -264,22 +259,6 @@ export default function SubmitActivity() {
         {selectedWeek && (
           <p>Planned: {new Date(selectedWeek.date).toLocaleDateString()}</p>
         )}
-
-        <label>
-          District
-          <select
-            value={district}
-            onChange={(e) => setDistrict(e.target.value)}
-            required
-          >
-            <option value="">Select a district</option>
-            {districts.map((d) => (
-              <option key={d._id} value={d._id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
-        </label>
 
         <label>
           Health Facility / Community
