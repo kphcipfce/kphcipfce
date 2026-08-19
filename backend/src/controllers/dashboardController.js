@@ -61,21 +61,23 @@ export async function monitoring(req, res) {
     { $project: { district: "$district.name", districtId: "$_id", activityCount: 1, verified: 1, flagged: 1 } },
   ]);
 
-  // Same grouping as byDistrict, but split out per activity type too — pivoted here into
-  // one row per district with a count per type, so the chart can render it directly.
-  const districtTypeCounts = await ActivityRecord.aggregate([
+  // Gender lives on the submitting Member, not the activity itself — joined in here and
+  // pivoted into one row per gender with a count per activity type, so the chart can render
+  // it directly.
+  const genderTypeCounts = await ActivityRecord.aggregate([
     { $match: match },
-    { $group: { _id: { district: "$district", activityType: "$activityType" }, count: { $sum: 1 } } },
-    { $lookup: { from: "districts", localField: "_id.district", foreignField: "_id", as: "district" } },
-    { $unwind: "$district" },
-    { $project: { district: "$district.name", activityType: "$_id.activityType", count: 1, _id: 0 } },
+    { $lookup: { from: "members", localField: "submittedBy", foreignField: "_id", as: "submitter" } },
+    { $unwind: "$submitter" },
+    { $group: { _id: { gender: "$submitter.gender", activityType: "$activityType" }, count: { $sum: 1 } } },
+    { $project: { gender: "$_id.gender", activityType: "$_id.activityType", count: 1, _id: 0 } },
   ]);
-  const byDistrictActivityTypeMap = new Map();
-  for (const row of districtTypeCounts) {
-    if (!byDistrictActivityTypeMap.has(row.district)) byDistrictActivityTypeMap.set(row.district, { district: row.district });
-    byDistrictActivityTypeMap.get(row.district)[row.activityType] = row.count;
+  const byGenderActivityTypeMap = new Map();
+  for (const row of genderTypeCounts) {
+    const gender = row.gender ? row.gender[0].toUpperCase() + row.gender.slice(1) : "Unknown";
+    if (!byGenderActivityTypeMap.has(gender)) byGenderActivityTypeMap.set(gender, { gender });
+    byGenderActivityTypeMap.get(gender)[row.activityType] = row.count;
   }
-  const byDistrictActivityType = [...byDistrictActivityTypeMap.values()];
+  const byGenderActivityType = [...byGenderActivityTypeMap.values()];
 
   // Attendance rate only counts verified activities — a flagged (unconfirmed) record's
   // claimed attendance shouldn't inflate the number, and a merely-submitted one hasn't
@@ -87,7 +89,7 @@ export async function monitoring(req, res) {
   ]);
   const attendanceRate = attendanceAgg[0] ? attendanceAgg[0].present / attendanceAgg[0].total : null;
 
-  res.json({ byTeam, byDistrict, byDistrictActivityType, attendanceRate });
+  res.json({ byTeam, byDistrict, byGenderActivityType, attendanceRate });
 }
 
 // FR-4.1/4.2/4.3: per-team and per-member performance stats.

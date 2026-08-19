@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { MdCancel } from "react-icons/md";
 import api from "../api/client";
 import { useToast } from "../context/ToastContext";
 import Spinner from "../components/Spinner";
@@ -33,7 +34,7 @@ export default function AdminPanel() {
 function MembersTab() {
   const { showToast } = useToast();
   const [members, setMembers] = useState([]);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", gender: "" });
   const [editingPasswordId, setEditingPasswordId] = useState(null);
   const [newPassword, setNewPassword] = useState("");
   const [creating, setCreating] = useState(false);
@@ -49,7 +50,7 @@ function MembersTab() {
     setCreating(true);
     try {
       await api.post("/members", { ...form, role: "member" });
-      setForm({ ...form, name: "", email: "", phone: "", password: "" });
+      setForm({ ...form, name: "", email: "", phone: "", password: "", gender: "" });
       showToast("success", "Social Mobilizer created", "The new social mobilizer can now sign in with their password.");
       load();
     } catch (err) {
@@ -60,6 +61,7 @@ function MembersTab() {
   }
 
   async function toggleActive(m) {
+    if (m.active && !confirm(`Deactivate ${m.name}? They won't be able to sign in until reactivated.`)) return;
     await api.patch(`/members/${m._id}`, { active: !m.active });
     load();
   }
@@ -91,6 +93,11 @@ function MembersTab() {
         <input placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
         <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
         <input placeholder="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
+        <select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })} required>
+          <option value="">Gender</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
         <button type="submit" disabled={creating} className={creating ? "btn-loading" : ""}>
           <span className="btn-label">Add Social Mobilizer</span>
           {creating && <span className="btn-spinner" />}
@@ -103,6 +110,7 @@ function MembersTab() {
             <tr>
               <th>Name</th>
               <th>Email</th>
+              <th>Gender</th>
               <th>Role</th>
               <th>Team</th>
               <th>Password</th>
@@ -114,6 +122,7 @@ function MembersTab() {
               <tr key={m._id}>
                 <td>{m.name}</td>
                 <td>{m.email}</td>
+                <td>{m.gender ? m.gender[0].toUpperCase() + m.gender.slice(1) : "—"}</td>
                 <td>{roleLabel(m.role)}</td>
                 <td>{m.team?.name || "—"}</td>
                 <td>
@@ -156,7 +165,9 @@ function MembersTab() {
                   )}
                 </td>
                 <td>
-                  <button onClick={() => toggleActive(m)}>{m.active ? "Deactivate" : "Activate"}</button>
+                  <button className={m.active ? "btn-deactivate" : "btn-activate"} onClick={() => toggleActive(m)}>
+                    {m.active ? "Deactivate" : "Activate"}
+                  </button>
                 </td>
               </tr>
             ))}
@@ -370,7 +381,8 @@ function DistrictsTab() {
     }
   }
 
-  async function removeDistrict(id) {
+  async function removeDistrict(id, name) {
+    if (!confirm(`Delete ${name}? This cannot be undone.`)) return;
     setRemovingId(id);
     try {
       await api.delete(`/districts/${id}`);
@@ -456,11 +468,13 @@ function DistrictsTab() {
                   <button
                     type="button"
                     disabled={removingId === d._id}
-                    className={removingId === d._id ? "btn-loading" : ""}
-                    onClick={() => removeDistrict(d._id)}
+                    className={`btn-delete-icon ${removingId === d._id ? "btn-loading" : ""}`}
+                    onClick={() => removeDistrict(d._id, d.name)}
                     aria-label={`Remove ${d.name}`}
                   >
-                    <span className="btn-label">×</span>
+                    <span className="btn-label">
+                      <MdCancel />
+                    </span>
                     {removingId === d._id && <span className="btn-spinner" />}
                   </button>
                 </td>
@@ -544,7 +558,8 @@ function MicroPlansTab() {
     }
   }
 
-  async function removeMicroPlan(id) {
+  async function removeMicroPlan(id, label) {
+    if (!confirm(`Delete the ${label} micro plan? This cannot be undone.`)) return;
     setRemovingId(id);
     try {
       await api.delete(`/micro-plans/${id}`);
@@ -586,8 +601,8 @@ function MicroPlansTab() {
                 <input type="date" value={w.date} onChange={(e) => updateWeek(i, "date", e.target.value)} required />
               </label>
               {form.weeks.length > 1 && (
-                <button type="button" onClick={() => removeWeek(i)} aria-label="Remove week">
-                  ×
+                <button type="button" className="btn-delete-icon" onClick={() => removeWeek(i)} aria-label="Remove week">
+                  <MdCancel />
                 </button>
               )}
             </div>
@@ -649,11 +664,13 @@ function MicroPlansTab() {
                   <button
                     type="button"
                     disabled={removingId === p._id}
-                    className={removingId === p._id ? "btn-loading" : ""}
-                    onClick={() => removeMicroPlan(p._id)}
+                    className={`btn-delete-icon ${removingId === p._id ? "btn-loading" : ""}`}
+                    onClick={() => removeMicroPlan(p._id, `${MONTH_NAMES[p.month - 1]} ${p.year}`)}
                     aria-label={`Remove ${MONTH_NAMES[p.month - 1]} ${p.year} plan`}
                   >
-                    <span className="btn-label">×</span>
+                    <span className="btn-label">
+                      <MdCancel />
+                    </span>
                     {removingId === p._id && <span className="btn-spinner" />}
                   </button>
                 </td>

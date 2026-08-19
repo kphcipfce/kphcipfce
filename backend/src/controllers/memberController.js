@@ -15,13 +15,16 @@ export async function listMembers(req, res) {
 }
 
 export async function createMember(req, res) {
-  const { name, email, phone, password, role = "member" } = req.body;
-  if (!name || !email || !password) {
-    return res.status(400).json({ error: "name, email, password required" });
+  const { name, email, phone, password, gender, role = "member" } = req.body;
+  if (!name || !email || !password || !gender) {
+    return res.status(400).json({ error: "name, email, password, gender required" });
+  }
+  if (!["male", "female"].includes(gender)) {
+    return res.status(400).json({ error: "gender must be male or female" });
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const member = await Member.create({ name, email: email.toLowerCase(), phone, passwordHash, role });
+  const member = await Member.create({ name, email: email.toLowerCase(), phone, passwordHash, gender, role });
   await logAction(req.user._id, "create", "Member", member._id, { name });
   res.status(201).json({ ...member.toObject(), passwordHash: undefined });
 }
@@ -33,11 +36,12 @@ export async function updateMember(req, res) {
     return res.status(400).json({ error: "A super_admin account cannot be deactivated" });
   }
 
-  const { name, phone, role, active, password } = req.body;
+  const { name, phone, role, active, password, gender } = req.body;
   if (name !== undefined) member.name = name;
   if (phone !== undefined) member.phone = phone;
   if (active !== undefined) member.active = active;
   if (role !== undefined) member.role = role;
+  if (gender !== undefined) member.gender = gender;
   if (password) member.passwordHash = await bcrypt.hash(password, 10);
 
   await member.save();

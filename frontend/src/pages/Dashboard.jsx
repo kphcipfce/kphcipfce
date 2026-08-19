@@ -211,9 +211,9 @@ function MonitoringDashboard() {
             <div className="chart-col">
               <h3>By Activity Type</h3>
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={monitoring.byDistrictActivityType} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+                <BarChart data={monitoring.byGenderActivityType} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="district" />
+                  <XAxis dataKey="gender" />
                   <YAxis allowDecimals={false} width={40} />
                   <Tooltip />
                   <Legend height={60} iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "0.75rem" }} />

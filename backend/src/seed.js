@@ -13,11 +13,24 @@ import MicroPlan from "./models/MicroPlan.js";
 import { attachDistrictViewer } from "./utils/districtViewer.js";
 
 const PASSWORD = "12345";
+// One male + one female per team — 4 of each across the 4 districts.
 const MEMBERS_BY_DISTRICT = {
-  Nowshera: ["Ahmad", "Bilal"],
-  Swabi: ["Fahad", "Zubair"],
-  Haripur: ["Imran", "Kashif"],
-  Peshawar: ["Usman", "Hamza"],
+  Nowshera: [
+    { name: "Ahmad", gender: "male" },
+    { name: "Ayesha", gender: "female" },
+  ],
+  Swabi: [
+    { name: "Fahad", gender: "male" },
+    { name: "Sana", gender: "female" },
+  ],
+  Haripur: [
+    { name: "Imran", gender: "male" },
+    { name: "Hina", gender: "female" },
+  ],
+  Peshawar: [
+    { name: "Usman", gender: "male" },
+    { name: "Mehwish", gender: "female" },
+  ],
 };
 
 async function seed() {
@@ -57,17 +70,19 @@ async function seed() {
   console.log(`super_admin: super@gmail.com`);
 
   for (const name of districtNames) {
-    const [n1, n2] = MEMBERS_BY_DISTRICT[name];
+    const [p1, p2] = MEMBERS_BY_DISTRICT[name];
     const m1 = await Member.create({
-      name: n1,
-      email: `${n1.toLowerCase()}@gmail.com`,
+      name: p1.name,
+      email: `${p1.name.toLowerCase()}@gmail.com`,
       passwordHash,
+      gender: p1.gender,
       role: "member",
     });
     const m2 = await Member.create({
-      name: n2,
-      email: `${n2.toLowerCase()}@gmail.com`,
+      name: p2.name,
+      email: `${p2.name.toLowerCase()}@gmail.com`,
       passwordHash,
+      gender: p2.gender,
       role: "member",
     });
 
