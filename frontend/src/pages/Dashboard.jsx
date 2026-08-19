@@ -90,25 +90,17 @@ function MonitoringDashboard() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const canModerate = user.role === "super_admin";
-  const [filters, setFilters] = useState({ from: "", to: "", team: "", status: "" });
   const [monitoring, setMonitoring] = useState(null);
   const [activities, setActivities] = useState([]);
   const [openId, setOpenId] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [exportDone, setExportDone] = useState(false);
-  const [applying, setApplying] = useState(false);
 
   async function load() {
-    setApplying(true);
-    const params = Object.fromEntries(Object.entries(filters).filter(([, v]) => v));
-    try {
-      await Promise.all([
-        api.get("/dashboard/monitoring", { params }).then((res) => setMonitoring(res.data)),
-        api.get("/activities", { params }).then((res) => setActivities(res.data)),
-      ]);
-    } finally {
-      setApplying(false);
-    }
+    await Promise.all([
+      api.get("/dashboard/monitoring").then((res) => setMonitoring(res.data)),
+      api.get("/activities").then((res) => setActivities(res.data)),
+    ]);
   }
 
   useEffect(() => {
@@ -141,33 +133,8 @@ function MonitoringDashboard() {
     <div className="page">
       <h1>Monitoring Dashboard</h1>
 
-      <form
-        className="filters"
-        onSubmit={(e) => {
-          e.preventDefault();
-          load();
-        }}
-      >
-        <label>
-          From <input type="date" value={filters.from} onChange={(e) => setFilters({ ...filters, from: e.target.value })} />
-        </label>
-        <label>
-          To <input type="date" value={filters.to} onChange={(e) => setFilters({ ...filters, to: e.target.value })} />
-        </label>
-        <label>
-          Status
-          <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
-            <option value="">All</option>
-            <option value="submitted">Submitted</option>
-            <option value="verified">Verified</option>
-            <option value="flagged">Flagged</option>
-          </select>
-        </label>
-        <button type="submit" disabled={applying} className={applying ? "btn-loading" : ""}>
-          <span className="btn-label">Apply</span>
-          {applying && <span className="btn-spinner" />}
-        </button>
-        {canModerate && (
+      {canModerate && (
+        <div className="filters">
           <button
             type="button"
             className={`btn-export ${exporting ? "btn-loading" : ""}`}
@@ -180,8 +147,8 @@ function MonitoringDashboard() {
             </span>
             {exporting && <span className="btn-spinner" />}
           </button>
-        )}
-      </form>
+        </div>
+      )}
 
       {monitoring && (
         <>
