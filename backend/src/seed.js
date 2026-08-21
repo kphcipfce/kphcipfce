@@ -5,14 +5,16 @@ import { connectDB } from "./config/db.js";
 import District from "./models/District.js";
 import Team from "./models/Team.js";
 import Member from "./models/Member.js";
+import Facility from "./models/Facility.js";
 import ActivityRecord from "./models/ActivityRecord.js";
 import AttendanceEntry from "./models/AttendanceEntry.js";
 import ImageMetadata from "./models/ImageMetadata.js";
 import AuditLog from "./models/AuditLog.js";
-import MicroPlan from "./models/MicroPlan.js";
 import { attachDistrictViewer } from "./utils/districtViewer.js";
+import { FACILITIES_BY_DISTRICT } from "./data/facilities.js";
 
 const PASSWORD = "12345";
+const SUPER_ADMIN_PASSWORD = "88888888";
 // One male + one female per team — 4 of each across the 4 districts.
 const MEMBERS_BY_DISTRICT = {
   Nowshera: [
@@ -41,7 +43,7 @@ async function seed() {
     AttendanceEntry.deleteMany({}),
     ImageMetadata.deleteMany({}),
     AuditLog.deleteMany({}),
-    MicroPlan.deleteMany({}),
+    Facility.deleteMany({}),
     Team.deleteMany({}),
     Member.deleteMany({}),
     District.deleteMany({}),
@@ -61,13 +63,25 @@ async function seed() {
     console.log(`${name} district_viewer password: ${district.viewerPassword}`);
   }
 
+  let facilityCount = 0;
+  for (const name of districtNames) {
+    const facilities = (FACILITIES_BY_DISTRICT[name] || []).map(([facilityName, category]) => ({
+      name: facilityName,
+      category,
+      district: districtIdByName[name],
+    }));
+    await Facility.insertMany(facilities);
+    facilityCount += facilities.length;
+  }
+  console.log(`Facilities seeded: ${facilityCount}`);
+
   await Member.create({
     name: "Super Admin",
     email: "super@gmail.com",
-    passwordHash,
+    passwordHash: await bcrypt.hash(SUPER_ADMIN_PASSWORD, 10),
     role: "super_admin",
   });
-  console.log(`super_admin: super@gmail.com`);
+  console.log(`super_admin: super@gmail.com / ${SUPER_ADMIN_PASSWORD}`);
 
   for (const name of districtNames) {
     const [p1, p2] = MEMBERS_BY_DISTRICT[name];
@@ -96,7 +110,7 @@ async function seed() {
     console.log(`${name}: members=${m1.email}, ${m2.email}`);
   }
 
-  console.log(`\nSeed complete. Password for every account: ${PASSWORD}`);
+  console.log(`\nSeed complete. Social mobilizer password: ${PASSWORD}. Super admin password: ${SUPER_ADMIN_PASSWORD}.`);
   await mongoose.disconnect();
   process.exit(0);
 }

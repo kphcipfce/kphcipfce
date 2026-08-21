@@ -2,12 +2,13 @@ import crypto from "node:crypto";
 import { Readable } from "node:stream";
 import exifr from "exifr";
 import ActivityRecord from "../models/ActivityRecord.js";
-import MicroPlan from "../models/MicroPlan.js";
+import Facility from "../models/Facility.js";
 import Team from "../models/Team.js";
 import AttendanceEntry from "../models/AttendanceEntry.js";
 import ImageMetadata from "../models/ImageMetadata.js";
 import { logAction } from "../middleware/audit.js";
 import cloudinary from "../config/cloudinary.js";
+import { dateForSlot, isValidSlot } from "../config/projectCalendar.js";
 
 function checksumBuffer(buf) {
   return crypto.createHash("sha256").update(buf).digest("hex");
@@ -42,39 +43,39 @@ function uploadToCloudinary(buffer) {
   });
 }
 
-// FR-2.1/2.2/2.3/2.4/2.5: create activity + attendance + per-photo metadata, duplicate/location/date flags.
+// FR-2.1/2.2/2.3/2.4/2.5: create activity + attendance + per-photo metadata, duplicate/location flags.
 export async function createActivity(req, res) {
   const {
-    dateTime,
+    time,
     activityType,
     description,
     attendeeIds,
     gpsLat,
     gpsLong,
-    healthFacility,
+    facility,
     plannedActivity,
     responsiblePerson,
     targetGroup,
     expectedOutput,
     visitStatus,
-    microPlan,
-    microPlanWeek,
+    week,
+    dayOfWeek,
   } = req.body;
   const teamId = req.user.team;
+  const weekNumber = Number(week);
 
   if (!teamId) return res.status(400).json({ error: "You must belong to a team to submit an activity" });
   if (
-    !dateTime ||
     !activityType ||
-    !healthFacility ||
+    !facility ||
     !plannedActivity ||
     !responsiblePerson ||
     !targetGroup ||
     !expectedOutput ||
-    !microPlan ||
-    !microPlanWeek
+    !week ||
+    !dayOfWeek
   ) {
-    return res.status(400).json({ error: "dateTime, activityType, and all plan/report fields are required" });
+    return res.status(400).json({ error: "activityType, facility, week, day, and all report fields are required" });
   }
   if (!req.files || req.files.length === 0) return res.status(400).json({ error: "At least one photo required" });
 
@@ -84,27 +85,33 @@ export async function createActivity(req, res) {
   if (!team) return res.status(400).json({ error: "Team not found" });
   const district = team.district;
 
-  // Defense in depth: verify the referenced plan/week is real and actually assigned to this
-  // member's team, rather than trusting whatever IDs the client happens to send.
-  const plan = await MicroPlan.findById(microPlan);
-  if (!plan) return res.status(400).json({ error: "Micro plan not found" });
-  if (!plan.teams.some((t) => String(t) === String(teamId))) {
-    return res.status(403).json({ error: "This micro plan is not assigned to your team" });
+  // Defense in depth: verify the facility is real and actually in this member's own
+  // district, rather than trusting whatever ID the client happens to send.
+  const facilityDoc = await Facility.findById(facility);
+  if (!facilityDoc) return res.status(400).json({ error: "Facility not found" });
+  if (String(facilityDoc.district) !== String(district)) {
+    return res.status(403).json({ error: "This facility is not in your team's district" });
   }
-  if (!plan.weeks.id(microPlanWeek)) return res.status(400).json({ error: "Invalid week for this micro plan" });
 
-  // Mirrors the dropdown filtering in listMicroPlans: a week that's already submitted or
-  // verified is occupied, so this blocks the race where a teammate submits for the same
-  // week from a stale/still-open form before the picker had a chance to hide it.
+  // The fixed calendar decides which days are even offered for a given activity type (5 for
+  // the first two, 4 for WASH-in-schools) — checked here too, never trusting the client.
+  if (!isValidSlot(activityType, weekNumber, dayOfWeek)) {
+    return res.status(400).json({ error: "Invalid week/day for this activity type" });
+  }
+
+  // A slot that's already submitted, verified, or flagged is occupied — a team only has one
+  // day per calendar slot, so this blocks the race where a teammate submits for the same
+  // day from a stale/still-open form before the picker had a chance to hide it.
   const alreadyOccupied = await ActivityRecord.exists({
     team: teamId,
-    microPlanWeek,
-    status: { $in: ["submitted", "verified"] },
+    week: weekNumber,
+    dayOfWeek,
+    status: { $in: ["submitted", "verified", "flagged"] },
   });
-  if (alreadyOccupied) return res.status(409).json({ error: "This week already has a submitted or verified activity" });
+  if (alreadyOccupied) return res.status(409).json({ error: "This day already has an activity submitted for it" });
 
   const submittedAt = new Date();
-  const dateMismatch = !sameCalendarDate(new Date(dateTime), submittedAt);
+  const dateTime = dateForSlot(weekNumber, dayOfWeek, time);
 
   const activity = await ActivityRecord.create({
     team: teamId,
@@ -112,14 +119,14 @@ export async function createActivity(req, res) {
     submittedBy: req.user._id,
     dateTime,
     activityType,
-    healthFacility,
+    facility,
     plannedActivity,
     responsiblePerson,
     targetGroup,
     expectedOutput,
     visitStatus,
-    microPlan,
-    microPlanWeek,
+    week: weekNumber,
+    dayOfWeek,
     description,
   });
 
@@ -159,7 +166,6 @@ export async function createActivity(req, res) {
 
   const flagReasons = [];
   if (anyDuplicate) flagReasons.push("duplicate image detected");
-  if (dateMismatch) flagReasons.push("activity date does not match submission date");
   if (anyCaptureDateMismatch) flagReasons.push("photo capture date does not match submission date");
 
   if (flagReasons.length) {
@@ -171,10 +177,9 @@ export async function createActivity(req, res) {
   await logAction(req.user._id, "create", "ActivityRecord", activity._id, {
     anyDuplicate,
     anyLocationUnverified,
-    dateMismatch,
     anyCaptureDateMismatch,
   });
-  res.status(201).json({ activity, flags: { anyDuplicate, anyLocationUnverified, dateMismatch, anyCaptureDateMismatch } });
+  res.status(201).json({ activity, flags: { anyDuplicate, anyLocationUnverified, anyCaptureDateMismatch } });
 }
 
 export async function listActivities(req, res) {
@@ -197,6 +202,7 @@ export async function listActivities(req, res) {
     .populate("team", "name")
     .populate("district", "name")
     .populate("submittedBy", "name")
+    .populate("facility", "name category")
     .sort("-dateTime")
     .lean();
 
@@ -219,7 +225,7 @@ export async function getActivity(req, res) {
     .populate("team", "name")
     .populate("district", "name")
     .populate("submittedBy", "name")
-    .populate("microPlan", "month year weeks");
+    .populate("facility", "name category");
   if (!activity) return res.status(404).json({ error: "Not found" });
   if (req.user.role === "district_viewer" && String(activity.district?._id) !== String(req.user.district)) {
     return res.status(403).json({ error: "Forbidden" });

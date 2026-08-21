@@ -57,11 +57,10 @@ export default function ActivityDetail({ activityId, onClose, onStatusChanged, c
   // "Mark Absent" still sets status to "verified" (it's a completed review either way) —
   // so the label shown needs its own check to say "absent" rather than "verified".
   const statusLabel = activity.status === "verified" && attendance.length > 0 && anyAbsent ? "absent" : activity.status;
-  const week = activity.microPlan?.weeks.find((w) => w._id === activity.microPlanWeek);
 
   const details = [
-    week && ["Planned week", new Date(week.date).toLocaleDateString()],
-    ["Health Facility / Community", activity.healthFacility],
+    ["Planned week", `Week ${activity.week} — ${activity.dayOfWeek}`],
+    ["Health Facility / Community", activity.facility ? `${activity.facility.name} (${activity.facility.category})` : ""],
     ["Planned Activity", activity.plannedActivity],
     ["Responsible Person", activity.responsiblePerson],
     ["Target Group", activity.targetGroup],

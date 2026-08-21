@@ -10,13 +10,11 @@ import { EyeIcon } from "../components/icons";
 
 // Fixed hue order per activity type — colors identify the type, so they must stay stable
 // regardless of which types happen to have data for the current filter (validated categorical
-// palette, slots 1-5: blue/orange/aqua/yellow/magenta).
+// palette, slots 1-3: blue/orange/aqua).
 const ACTIVITY_TYPE_COLORS = {
-  "Maternal & Newborn Care": "#2a78d6",
-  "Child Vaccination Services": "#eb6834",
-  "24/7 Urgent Care": "#1baf7a",
-  "Skilled Doctor Coverage": "#eda100",
-  Other: "#e87ba4",
+  "Community engagement session": "#2a78d6",
+  "Behavioural change and communication campaign": "#eb6834",
+  "Wash and health hygiene in schools": "#1baf7a",
 };
 const ACTIVITY_TYPES = Object.keys(ACTIVITY_TYPE_COLORS);
 

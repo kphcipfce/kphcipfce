@@ -194,7 +194,7 @@ export async function exportFieldTracker(req, res) {
   const match = buildMatch(req);
   const activities = await ActivityRecord.find(match)
     .populate("district", "name")
-    .populate("microPlan", "weeks")
+    .populate("facility", "name")
     .sort("-dateTime")
     .lean();
 
@@ -226,8 +226,6 @@ export async function exportFieldTracker(req, res) {
   sheet.autoFilter = { from: "A1", to: "K1" };
 
   for (const a of activities) {
-    const week = a.microPlan?.weeks?.find((w) => String(w._id) === String(a.microPlanWeek));
-
     // Same rule as the dashboard's statusClassName: flagged always shown; a verified record
     // is "verified" or "absent" depending on attendance; anything still submitted is blank.
     const allPresent = allPresentMap.has(String(a._id)) ? allPresentMap.get(String(a._id)) : null;
@@ -238,9 +236,9 @@ export async function exportFieldTracker(req, res) {
 
     const row = sheet.addRow({
       date: new Date(a.dateTime).toLocaleDateString("en-US"),
-      week: week?.weekNumber ?? "",
+      week: a.week,
       district: a.district?.name || "",
-      healthFacility: a.healthFacility,
+      healthFacility: a.facility?.name || "",
       plannedActivity: a.plannedActivity,
       responsiblePerson: a.responsiblePerson,
       targetGroup: a.targetGroup,

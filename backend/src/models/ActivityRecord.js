@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { TOTAL_WEEKS } from "../config/projectCalendar.js";
 
 const editLogEntry = new mongoose.Schema(
   {
@@ -16,7 +17,7 @@ const activityRecordSchema = new mongoose.Schema(
     submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Member", required: true },
     dateTime: { type: Date, required: true },
     activityType: { type: String, required: true },
-    healthFacility: { type: String, required: true, trim: true },
+    facility: { type: mongoose.Schema.Types.ObjectId, ref: "Facility", required: true },
     plannedActivity: { type: String, required: true, trim: true },
     responsiblePerson: { type: String, required: true, trim: true },
     targetGroup: { type: String, required: true, trim: true },
@@ -26,8 +27,10 @@ const activityRecordSchema = new mongoose.Schema(
       enum: ["Pending", "In Progress", "Completed", "Deferred / Rescheduled"],
       default: "Completed",
     },
-    microPlan: { type: mongoose.Schema.Types.ObjectId, ref: "MicroPlan", required: true },
-    microPlanWeek: { type: mongoose.Schema.Types.ObjectId, required: true }, // matches a weeks[]._id inside `microPlan`
+    // Fixed 18-week project calendar (see config/projectCalendar.js) — every team shares the
+    // same week numbering, so this is a plain number/day pair rather than a plan reference.
+    week: { type: Number, required: true, min: 1, max: TOTAL_WEEKS },
+    dayOfWeek: { type: String, enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], required: true },
     description: { type: String, trim: true }, // free-text "Remarks / Follow-up" in the UI
     status: { type: String, enum: ["submitted", "verified", "flagged"], default: "submitted" },
     statusReason: { type: String, trim: true },
