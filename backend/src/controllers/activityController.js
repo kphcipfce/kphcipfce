@@ -8,7 +8,7 @@ import AttendanceEntry from "../models/AttendanceEntry.js";
 import ImageMetadata from "../models/ImageMetadata.js";
 import { logAction } from "../middleware/audit.js";
 import cloudinary from "../config/cloudinary.js";
-import { dateForSlot, isValidSlot } from "../config/projectCalendar.js";
+import { dateForSlot, isValidSlot, BCC_TYPE } from "../config/projectCalendar.js";
 
 function checksumBuffer(buf) {
   return crypto.createHash("sha256").update(buf).digest("hex");
@@ -99,16 +99,33 @@ export async function createActivity(req, res) {
     return res.status(400).json({ error: "Invalid week/day for this activity type" });
   }
 
-  // A slot that's already submitted, verified, or flagged is occupied — a team only has one
-  // day per calendar slot, so this blocks the race where a teammate submits for the same
-  // day from a stale/still-open form before the picker had a chance to hide it.
-  const alreadyOccupied = await ActivityRecord.exists({
+  const attendees = Array.isArray(attendeeIds) ? attendeeIds : attendeeIds ? [attendeeIds] : [req.user._id];
+
+  // Each activity type is its own independent track — a WASH session and a Community
+  // engagement session can both happen on the same day, they don't block each other. What's
+  // occupied is per attendee, not per team: a teammate who wasn't present for a given
+  // slot can still submit their own separate one for it, but nobody can log the same slot
+  // twice for themselves. BCC is a single one-time session per its 3-weekly slot (whichever
+  // day it lands on), not a daily-repeatable one — so the whole week is checked for it,
+  // rather than just the exact day, or the same session could be logged on two different days.
+  const sameSlotQuery = {
     team: teamId,
     week: weekNumber,
-    dayOfWeek,
+    activityType,
     status: { $in: ["submitted", "verified", "flagged"] },
-  });
-  if (alreadyOccupied) return res.status(409).json({ error: "This day already has an activity submitted for it" });
+  };
+  if (activityType !== BCC_TYPE) sameSlotQuery.dayOfWeek = dayOfWeek;
+  const sameSlotActivityIds = await ActivityRecord.find(sameSlotQuery).distinct("_id");
+  if (sameSlotActivityIds.length) {
+    const alreadyAttended = await AttendanceEntry.exists({
+      activityRecord: { $in: sameSlotActivityIds },
+      member: { $in: attendees },
+    });
+    if (alreadyAttended) {
+      const scope = activityType === BCC_TYPE ? "this week's session" : "this day";
+      return res.status(409).json({ error: `One of the selected attendees already has ${scope} submitted for this activity type` });
+    }
+  }
 
   const submittedAt = new Date();
   const dateTime = dateForSlot(weekNumber, dayOfWeek, time);
@@ -130,7 +147,6 @@ export async function createActivity(req, res) {
     description,
   });
 
-  const attendees = Array.isArray(attendeeIds) ? attendeeIds : attendeeIds ? [attendeeIds] : [req.user._id];
   await AttendanceEntry.insertMany(attendees.map((member) => ({ activityRecord: activity._id, member, present: true })));
 
   let anyDuplicate = false;
@@ -208,13 +224,17 @@ export async function listActivities(req, res) {
 
   // One flag per activity so the list view can color a verified row by attendance
   // without a per-row detail fetch: true = everyone present, false = someone marked absent.
+  // attendeeIds rides along too — the Submit Activity picker uses it to work out which
+  // weeks/days are already used up for the logged-in member specifically, not the whole team.
   const summary = await AttendanceEntry.aggregate([
     { $match: { activityRecord: { $in: activities.map((a) => a._id) } } },
-    { $group: { _id: "$activityRecord", anyAbsent: { $sum: { $cond: ["$present", 0, 1] } } } },
+    { $group: { _id: "$activityRecord", anyAbsent: { $sum: { $cond: ["$present", 0, 1] } }, attendeeIds: { $push: "$member" } } },
   ]);
-  const allPresentMap = new Map(summary.map((s) => [String(s._id), s.anyAbsent === 0]));
+  const summaryMap = new Map(summary.map((s) => [String(s._id), s]));
   for (const activity of activities) {
-    activity.allPresent = allPresentMap.has(String(activity._id)) ? allPresentMap.get(String(activity._id)) : null;
+    const s = summaryMap.get(String(activity._id));
+    activity.allPresent = s ? s.anyAbsent === 0 : null;
+    activity.attendeeIds = s ? s.attendeeIds : [];
   }
 
   res.json(activities);

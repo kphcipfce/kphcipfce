@@ -3,6 +3,7 @@
 const ROLE_LABELS = {
   member: "Social Mobilizer",
   district_viewer: "District Coordinator",
+  grm_focal: "GRM Focal Person",
   super_admin: "Super Admin",
 };
 

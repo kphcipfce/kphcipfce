@@ -4,6 +4,8 @@ import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import ActivityDetail from "../components/ActivityDetail";
+import CoordinatorActivityDetail from "../components/CoordinatorActivityDetail";
+import GrmActivityDetail from "../components/GrmActivityDetail";
 import { IoMdDownload } from "react-icons/io";
 import { MdFileDownloadDone } from "react-icons/md";
 import { EyeIcon } from "../components/icons";
@@ -90,7 +92,11 @@ function MonitoringDashboard() {
   const canModerate = user.role === "super_admin";
   const [monitoring, setMonitoring] = useState(null);
   const [activities, setActivities] = useState([]);
+  const [coordinatorActivities, setCoordinatorActivities] = useState([]);
+  const [grmActivities, setGrmActivities] = useState([]);
   const [openId, setOpenId] = useState(null);
+  const [openCoordinatorId, setOpenCoordinatorId] = useState(null);
+  const [openGrmId, setOpenGrmId] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [exportDone, setExportDone] = useState(false);
 
@@ -98,6 +104,8 @@ function MonitoringDashboard() {
     await Promise.all([
       api.get("/dashboard/monitoring").then((res) => setMonitoring(res.data)),
       api.get("/activities").then((res) => setActivities(res.data)),
+      api.get("/coordinator-activities").then((res) => setCoordinatorActivities(res.data)),
+      api.get("/grm-activities").then((res) => setGrmActivities(res.data)),
     ]);
   }
 
@@ -205,7 +213,7 @@ function MonitoringDashboard() {
         </>
       )}
 
-      <h3>Activity Records</h3>
+      <h3>Social Mobilizer Activity Records</h3>
       <div className="table-scroll">
         <table className="table">
           <thead>
@@ -237,7 +245,92 @@ function MonitoringDashboard() {
         </table>
       </div>
 
+      {/* Kept in a separate table (and a separate collection server-side) so these never mix
+          into the Field Tracker export or any of the charts/stats above, which are all built
+          around social mobilizer team/facility visits. */}
+      <h3>District Coordinator Activity Records</h3>
+      <div className="table-scroll">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>District</th>
+              <th>Type</th>
+              <th>Refresher</th>
+              <th>Review</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {coordinatorActivities.map((a) => (
+              <tr key={a._id}>
+                <td>{new Date(a.dateTime).toLocaleDateString()}</td>
+                <td>{a.district?.name}</td>
+                <td>{a.activityType}</td>
+                <td>{a.isRefresher ? "Yes" : "No"}</td>
+                <td>
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    onClick={() => setOpenCoordinatorId(a._id)}
+                    aria-label="Preview coordinator activity record"
+                  >
+                    <EyeIcon />
+                  </button>
+                </td>
+                <td className={a.status === "flagged" ? "status-flagged" : a.status === "verified" ? "status-present" : ""}>{a.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Same isolation as the coordinator table above — its own collection, so GRM data
+          never touches the Field Tracker export or the social mobilizer charts/stats. */}
+      <h3>GRM Focal Person Activity Records</h3>
+      <div className="table-scroll">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>District</th>
+              <th>Type</th>
+              <th>Refresher</th>
+              <th>Review</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {grmActivities.map((a) => (
+              <tr key={a._id}>
+                <td>{new Date(a.dateTime).toLocaleDateString()}</td>
+                <td>{a.district?.name}</td>
+                <td>{a.activityType}</td>
+                <td>{a.isRefresher ? "Yes" : "No"}</td>
+                <td>
+                  <button type="button" className="icon-btn" onClick={() => setOpenGrmId(a._id)} aria-label="Preview GRM activity record">
+                    <EyeIcon />
+                  </button>
+                </td>
+                <td className={a.status === "flagged" ? "status-flagged" : a.status === "verified" ? "status-present" : ""}>{a.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
       {openId && <ActivityDetail activityId={openId} canModerate={canModerate} onClose={() => setOpenId(null)} onStatusChanged={load} />}
+      {openCoordinatorId && (
+        <CoordinatorActivityDetail
+          activityId={openCoordinatorId}
+          canModerate={canModerate}
+          onClose={() => setOpenCoordinatorId(null)}
+          onStatusChanged={load}
+        />
+      )}
+      {openGrmId && (
+        <GrmActivityDetail activityId={openGrmId} canModerate={canModerate} onClose={() => setOpenGrmId(null)} onStatusChanged={load} />
+      )}
     </div>
   );
 }

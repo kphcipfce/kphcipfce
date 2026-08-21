@@ -6,7 +6,7 @@ import Spinner from "../components/Spinner";
 import { EyeIcon, EyeOffIcon } from "../components/icons";
 import { roleLabel } from "../utils/roleLabel";
 
-const TABS = ["Social Mobilizers", "Teams", "Districts", "Overview", "Audit Log"];
+const TABS = ["Social Mobilizers", "Teams", "Districts", "Coordinator Plans", "GRM Plans", "Overview", "Audit Log"];
 
 export default function AdminPanel() {
   const [tab, setTab] = useState(TABS[0]);
@@ -24,6 +24,8 @@ export default function AdminPanel() {
       {tab === "Social Mobilizers" && <MembersTab />}
       {tab === "Teams" && <TeamsTab />}
       {tab === "Districts" && <DistrictsTab />}
+      {tab === "Coordinator Plans" && <CoordinatorPlansTab />}
+      {tab === "GRM Plans" && <GrmPlansTab />}
       {tab === "Overview" && <OverviewTab />}
       {tab === "Audit Log" && <AuditLogTab />}
     </div>
@@ -356,9 +358,12 @@ function DistrictsTab() {
   const [name, setName] = useState("");
   const [openViewerId, setOpenViewerId] = useState(null);
   const [viewerPassword, setViewerPassword] = useState("");
+  const [openGrmId, setOpenGrmId] = useState(null);
+  const [grmFocalPassword, setGrmFocalPassword] = useState("");
   const [creating, setCreating] = useState(false);
   const [removingId, setRemovingId] = useState(null);
   const [savingViewerPassword, setSavingViewerPassword] = useState(false);
+  const [savingGrmFocalPassword, setSavingGrmFocalPassword] = useState(false);
 
   function load() {
     api.get("/districts").then((res) => setDistricts(res.data));
@@ -408,12 +413,35 @@ function DistrictsTab() {
     try {
       await api.patch(`/districts/${id}/viewer-password`, { password: viewerPassword });
       setOpenViewerId(null);
-      showToast("success", "Viewer password updated", "Share the new password with the district viewer.");
+      showToast("success", "Viewer password updated", "Share the new password with the district coordinator.");
       load();
     } catch (err) {
       showToast("error", err.response?.data?.error || "Failed to update password");
     } finally {
       setSavingViewerPassword(false);
+    }
+  }
+
+  function toggleGrmFocal(d) {
+    setOpenGrmId((current) => {
+      if (current === d._id) return null;
+      setGrmFocalPassword(d.grmFocalPassword || "");
+      return d._id;
+    });
+  }
+
+  async function saveGrmFocalPassword(id) {
+    if (!grmFocalPassword) return showToast("error", "Enter a password");
+    setSavingGrmFocalPassword(true);
+    try {
+      await api.patch(`/districts/${id}/grm-focal-password`, { password: grmFocalPassword });
+      setOpenGrmId(null);
+      showToast("success", "GRM focal password updated", "Share the new password with the GRM focal person.");
+      load();
+    } catch (err) {
+      showToast("error", err.response?.data?.error || "Failed to update password");
+    } finally {
+      setSavingGrmFocalPassword(false);
     }
   }
 
@@ -431,7 +459,8 @@ function DistrictsTab() {
           <thead>
             <tr>
               <th>Name</th>
-              <th>Viewer Login</th>
+              <th>District Coordinator Login</th>
+              <th>GRM Focal Person Login</th>
               <th></th>
             </tr>
           </thead>
@@ -464,6 +493,35 @@ function DistrictsTab() {
                   )}
                 </td>
                 <td>
+                  {openGrmId === d._id ? (
+                    <div className="password-edit">
+                      <span>{d.grmFocalMember?.email}</span>
+                      <input type="text" value={grmFocalPassword} onChange={(e) => setGrmFocalPassword(e.target.value)} autoFocus />
+                      <button
+                        type="button"
+                        disabled={savingGrmFocalPassword}
+                        className={savingGrmFocalPassword ? "btn-loading" : ""}
+                        onClick={() => saveGrmFocalPassword(d._id)}
+                      >
+                        <span className="btn-label">Save</span>
+                        {savingGrmFocalPassword && <span className="btn-spinner" />}
+                      </button>
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        onClick={() => toggleGrmFocal(d)}
+                        aria-label={`Close GRM focal login for ${d.name}`}
+                      >
+                        <EyeOffIcon />
+                      </button>
+                    </div>
+                  ) : (
+                    <button type="button" className="icon-btn" onClick={() => toggleGrmFocal(d)} aria-label={`Show GRM focal login for ${d.name}`}>
+                      <EyeIcon />
+                    </button>
+                  )}
+                </td>
+                <td>
                   <button
                     type="button"
                     disabled={removingId === d._id}
@@ -475,6 +533,379 @@ function DistrictsTab() {
                       <MdCancel />
                     </span>
                     {removingId === d._id && <span className="btn-spinner" />}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+function emptyWeek() {
+  return { date: "" };
+}
+
+function CoordinatorPlansTab() {
+  const { showToast } = useToast();
+  const now = new Date();
+  const [plans, setPlans] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [form, setForm] = useState({
+    month: now.getMonth() + 1,
+    year: now.getFullYear(),
+    weeks: [emptyWeek(), emptyWeek(), emptyWeek(), emptyWeek()],
+    districtIds: [],
+  });
+  const [creating, setCreating] = useState(false);
+  const [removingId, setRemovingId] = useState(null);
+
+  function load() {
+    api.get("/coordinator-plans").then((res) => setPlans(res.data));
+    api.get("/districts").then((res) => setDistricts(res.data));
+  }
+  useEffect(load, []);
+
+  function updateWeek(i, field, value) {
+    setForm((f) => ({ ...f, weeks: f.weeks.map((w, idx) => (idx === i ? { ...w, [field]: value } : w)) }));
+  }
+
+  function addWeek() {
+    setForm((f) => ({ ...f, weeks: [...f.weeks, emptyWeek()] }));
+  }
+
+  function removeWeek(i) {
+    setForm((f) => ({ ...f, weeks: f.weeks.filter((_, idx) => idx !== i) }));
+  }
+
+  async function createPlan(e) {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      await api.post("/coordinator-plans", {
+        month: Number(form.month),
+        year: Number(form.year),
+        weeks: form.weeks,
+        districts: form.districtIds,
+      });
+      setForm({ month: now.getMonth() + 1, year: now.getFullYear(), weeks: [emptyWeek(), emptyWeek(), emptyWeek(), emptyWeek()], districtIds: [] });
+      showToast("success", "Plan created", "Assigned coordinators can now submit against these weeks.");
+      load();
+    } catch (err) {
+      showToast("error", err.response?.data?.error || "Failed to create plan");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function removePlan(id, label) {
+    if (!confirm(`Delete the ${label} plan? This cannot be undone.`)) return;
+    setRemovingId(id);
+    try {
+      await api.delete(`/coordinator-plans/${id}`);
+      showToast("success", "Plan removed");
+      load();
+    } catch (err) {
+      showToast("error", err.response?.data?.error || "Failed to delete plan");
+    } finally {
+      setRemovingId(null);
+    }
+  }
+
+  return (
+    <div>
+      <form className="card" onSubmit={createPlan}>
+        <div className="date-time-row">
+          <label>
+            Month
+            <select value={form.month} onChange={(e) => setForm({ ...form, month: e.target.value })}>
+              {MONTH_NAMES.map((m, i) => (
+                <option key={m} value={i + 1}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Year
+            <input type="number" value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })} required />
+          </label>
+        </div>
+
+        <fieldset>
+          <legend>Weeks</legend>
+          {form.weeks.map((w, i) => (
+            <div className="date-time-row" key={i}>
+              <label>
+                Week {i + 1} date
+                <input type="date" value={w.date} onChange={(e) => updateWeek(i, "date", e.target.value)} required />
+              </label>
+              {form.weeks.length > 1 && (
+                <button type="button" className="btn-delete-icon" onClick={() => removeWeek(i)} aria-label="Remove week">
+                  <MdCancel />
+                </button>
+              )}
+            </div>
+          ))}
+          <button type="button" onClick={addWeek}>
+            + Add week
+          </button>
+        </fieldset>
+
+        <label>
+          Assign to districts
+          <select
+            multiple
+            value={form.districtIds}
+            onChange={(e) => setForm({ ...form, districtIds: Array.from(e.target.selectedOptions, (o) => o.value) })}
+            required
+          >
+            {districts.map((d) => (
+              <option key={d._id} value={d._id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <button type="submit" disabled={creating} className={creating ? "btn-loading" : ""}>
+          <span className="btn-label">Create plan</span>
+          {creating && <span className="btn-spinner" />}
+        </button>
+      </form>
+
+      <div className="table-scroll">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Month/Year</th>
+              <th>Assigned Districts</th>
+              <th>Weeks</th>
+              <th>Created By</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {plans.map((p) => (
+              <tr key={p._id}>
+                <td>
+                  {MONTH_NAMES[p.month - 1]} {p.year}
+                </td>
+                <td>{p.districts.map((d) => d.name).join(" & ")}</td>
+                <td>
+                  {p.weeks.map((w) => (
+                    <div key={w._id}>
+                      Week {w.weekNumber}: {new Date(w.date).toLocaleDateString()}
+                    </div>
+                  ))}
+                </td>
+                <td>{p.createdBy?.name}</td>
+                <td>
+                  <button
+                    type="button"
+                    disabled={removingId === p._id}
+                    className={`btn-delete-icon ${removingId === p._id ? "btn-loading" : ""}`}
+                    onClick={() => removePlan(p._id, `${MONTH_NAMES[p.month - 1]} ${p.year}`)}
+                    aria-label={`Remove ${MONTH_NAMES[p.month - 1]} ${p.year} plan`}
+                  >
+                    <span className="btn-label">
+                      <MdCancel />
+                    </span>
+                    {removingId === p._id && <span className="btn-spinner" />}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function GrmPlansTab() {
+  const { showToast } = useToast();
+  const now = new Date();
+  const [plans, setPlans] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [form, setForm] = useState({
+    month: now.getMonth() + 1,
+    year: now.getFullYear(),
+    weeks: [emptyWeek(), emptyWeek(), emptyWeek(), emptyWeek()],
+    districtIds: [],
+  });
+  const [creating, setCreating] = useState(false);
+  const [removingId, setRemovingId] = useState(null);
+
+  function load() {
+    api.get("/grm-plans").then((res) => setPlans(res.data));
+    api.get("/districts").then((res) => setDistricts(res.data));
+  }
+  useEffect(load, []);
+
+  function updateWeek(i, field, value) {
+    setForm((f) => ({ ...f, weeks: f.weeks.map((w, idx) => (idx === i ? { ...w, [field]: value } : w)) }));
+  }
+
+  function addWeek() {
+    setForm((f) => ({ ...f, weeks: [...f.weeks, emptyWeek()] }));
+  }
+
+  function removeWeek(i) {
+    setForm((f) => ({ ...f, weeks: f.weeks.filter((_, idx) => idx !== i) }));
+  }
+
+  async function createPlan(e) {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      await api.post("/grm-plans", {
+        month: Number(form.month),
+        year: Number(form.year),
+        weeks: form.weeks,
+        districts: form.districtIds,
+      });
+      setForm({ month: now.getMonth() + 1, year: now.getFullYear(), weeks: [emptyWeek(), emptyWeek(), emptyWeek(), emptyWeek()], districtIds: [] });
+      showToast("success", "Plan created", "Assigned focal persons can now submit against these weeks.");
+      load();
+    } catch (err) {
+      showToast("error", err.response?.data?.error || "Failed to create plan");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function removePlan(id, label) {
+    if (!confirm(`Delete the ${label} plan? This cannot be undone.`)) return;
+    setRemovingId(id);
+    try {
+      await api.delete(`/grm-plans/${id}`);
+      showToast("success", "Plan removed");
+      load();
+    } catch (err) {
+      showToast("error", err.response?.data?.error || "Failed to delete plan");
+    } finally {
+      setRemovingId(null);
+    }
+  }
+
+  return (
+    <div>
+      <form className="card" onSubmit={createPlan}>
+        <div className="date-time-row">
+          <label>
+            Month
+            <select value={form.month} onChange={(e) => setForm({ ...form, month: e.target.value })}>
+              {MONTH_NAMES.map((m, i) => (
+                <option key={m} value={i + 1}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Year
+            <input type="number" value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })} required />
+          </label>
+        </div>
+
+        <fieldset>
+          <legend>Weeks</legend>
+          {form.weeks.map((w, i) => (
+            <div className="date-time-row" key={i}>
+              <label>
+                Week {i + 1} date
+                <input type="date" value={w.date} onChange={(e) => updateWeek(i, "date", e.target.value)} required />
+              </label>
+              {form.weeks.length > 1 && (
+                <button type="button" className="btn-delete-icon" onClick={() => removeWeek(i)} aria-label="Remove week">
+                  <MdCancel />
+                </button>
+              )}
+            </div>
+          ))}
+          <button type="button" onClick={addWeek}>
+            + Add week
+          </button>
+        </fieldset>
+
+        <label>
+          Assign to districts
+          <select
+            multiple
+            value={form.districtIds}
+            onChange={(e) => setForm({ ...form, districtIds: Array.from(e.target.selectedOptions, (o) => o.value) })}
+            required
+          >
+            {districts.map((d) => (
+              <option key={d._id} value={d._id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <button type="submit" disabled={creating} className={creating ? "btn-loading" : ""}>
+          <span className="btn-label">Create plan</span>
+          {creating && <span className="btn-spinner" />}
+        </button>
+      </form>
+
+      <div className="table-scroll">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Month/Year</th>
+              <th>Assigned Districts</th>
+              <th>Weeks</th>
+              <th>Created By</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {plans.map((p) => (
+              <tr key={p._id}>
+                <td>
+                  {MONTH_NAMES[p.month - 1]} {p.year}
+                </td>
+                <td>{p.districts.map((d) => d.name).join(" & ")}</td>
+                <td>
+                  {p.weeks.map((w) => (
+                    <div key={w._id}>
+                      Week {w.weekNumber}: {new Date(w.date).toLocaleDateString()}
+                    </div>
+                  ))}
+                </td>
+                <td>{p.createdBy?.name}</td>
+                <td>
+                  <button
+                    type="button"
+                    disabled={removingId === p._id}
+                    className={`btn-delete-icon ${removingId === p._id ? "btn-loading" : ""}`}
+                    onClick={() => removePlan(p._id, `${MONTH_NAMES[p.month - 1]} ${p.year}`)}
+                    aria-label={`Remove ${MONTH_NAMES[p.month - 1]} ${p.year} plan`}
+                  >
+                    <span className="btn-label">
+                      <MdCancel />
+                    </span>
+                    {removingId === p._id && <span className="btn-spinner" />}
                   </button>
                 </td>
               </tr>

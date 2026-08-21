@@ -14,6 +14,15 @@ const DAYS_BY_ACTIVITY_TYPE = {
   "Wash and health hygiene in schools": ["Monday", "Tuesday", "Wednesday", "Thursday"],
 };
 
+// BCC only runs 6 times across the 18-week project — once every 3 weeks — rather than every
+// week like the other two types. Session number is just week/3, so no separate counter needed.
+const BCC_WEEKS = [3, 6, 9, 12, 15, 18];
+const BCC_TYPE = "Behavioural change and communication campaign";
+
+export function bccSessionNumber(weekNumber) {
+  return weekNumber / 3;
+}
+
 const DAY_OFFSET = { Monday: 0, Tuesday: 1, Wednesday: 2, Thursday: 3, Friday: 4 };
 
 function mondayOfWeek(weekNumber) {
@@ -36,8 +45,9 @@ export function dateForSlot(weekNumber, dayOfWeek, time) {
 
 export function isValidSlot(activityType, weekNumber, dayOfWeek) {
   if (weekNumber < 1 || weekNumber > TOTAL_WEEKS) return false;
+  if (activityType === BCC_TYPE && !BCC_WEEKS.includes(weekNumber)) return false;
   const allowedDays = DAYS_BY_ACTIVITY_TYPE[activityType];
   return !!allowedDays && allowedDays.includes(dayOfWeek);
 }
 
-export { TOTAL_WEEKS, DAYS_BY_ACTIVITY_TYPE };
+export { TOTAL_WEEKS, DAYS_BY_ACTIVITY_TYPE, BCC_WEEKS, BCC_TYPE };

@@ -10,6 +10,10 @@ import teamRoutes from "./routes/teamRoutes.js";
 import facilityRoutes from "./routes/facilityRoutes.js";
 import scheduleRoutes from "./routes/scheduleRoutes.js";
 import activityRoutes from "./routes/activityRoutes.js";
+import coordinatorPlanRoutes from "./routes/coordinatorPlanRoutes.js";
+import coordinatorActivityRoutes from "./routes/coordinatorActivityRoutes.js";
+import grmPlanRoutes from "./routes/grmPlanRoutes.js";
+import grmActivityRoutes from "./routes/grmActivityRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import auditRoutes from "./routes/auditRoutes.js";
 
@@ -25,6 +29,10 @@ app.use("/api/teams", teamRoutes);
 app.use("/api/facilities", facilityRoutes);
 app.use("/api/schedule", scheduleRoutes);
 app.use("/api/activities", activityRoutes);
+app.use("/api/coordinator-plans", coordinatorPlanRoutes);
+app.use("/api/coordinator-activities", coordinatorActivityRoutes);
+app.use("/api/grm-plans", grmPlanRoutes);
+app.use("/api/grm-activities", grmActivityRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/audit-logs", auditRoutes);
 

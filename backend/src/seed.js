@@ -10,6 +10,10 @@ import ActivityRecord from "./models/ActivityRecord.js";
 import AttendanceEntry from "./models/AttendanceEntry.js";
 import ImageMetadata from "./models/ImageMetadata.js";
 import AuditLog from "./models/AuditLog.js";
+import CoordinatorPlan from "./models/CoordinatorPlan.js";
+import CoordinatorActivityRecord from "./models/CoordinatorActivityRecord.js";
+import GrmPlan from "./models/GrmPlan.js";
+import GrmActivityRecord from "./models/GrmActivityRecord.js";
 import { attachDistrictViewer } from "./utils/districtViewer.js";
 import { FACILITIES_BY_DISTRICT } from "./data/facilities.js";
 
@@ -43,6 +47,10 @@ async function seed() {
     AttendanceEntry.deleteMany({}),
     ImageMetadata.deleteMany({}),
     AuditLog.deleteMany({}),
+    CoordinatorPlan.deleteMany({}),
+    CoordinatorActivityRecord.deleteMany({}),
+    GrmPlan.deleteMany({}),
+    GrmActivityRecord.deleteMany({}),
     Facility.deleteMany({}),
     Team.deleteMany({}),
     Member.deleteMany({}),
@@ -61,6 +69,24 @@ async function seed() {
     await attachDistrictViewer(district);
     await district.save();
     console.log(`${name} district_viewer password: ${district.viewerPassword}`);
+  }
+
+  // One GRM Focal Person account per district, same simple password as social mobilizers
+  // (unlike district_viewer's auto-generated one) — 4 accounts total. Also stamped onto the
+  // District doc (grmFocalMember/grmFocalPassword) so the admin panel's password viewer
+  // works the same way it does for district_viewer.
+  for (const name of districtNames) {
+    const slug = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const email = `${slug}grm@gmail.com`;
+    const focal = await Member.create({
+      name: `${name} GRM Focal Person`,
+      email,
+      passwordHash,
+      role: "grm_focal",
+      district: districtIdByName[name],
+    });
+    await District.findByIdAndUpdate(districtIdByName[name], { grmFocalMember: focal._id, grmFocalPassword: PASSWORD });
+    console.log(`${name} grm_focal: ${email}`);
   }
 
   let facilityCount = 0;
@@ -105,12 +131,17 @@ async function seed() {
       memberIds: [m1._id, m2._id],
       district: districtIdByName[name],
     });
-    await Member.updateMany({ _id: { $in: [m1._id, m2._id] } }, { team: team._id });
+    await Member.updateMany(
+      { _id: { $in: [m1._id, m2._id] } },
+      { team: team._id },
+    );
 
     console.log(`${name}: members=${m1.email}, ${m2.email}`);
   }
 
-  console.log(`\nSeed complete. Social mobilizer password: ${PASSWORD}. Super admin password: ${SUPER_ADMIN_PASSWORD}.`);
+  console.log(
+    `\nSeed complete. Social mobilizer password: ${PASSWORD}. Super admin password: ${SUPER_ADMIN_PASSWORD}.`,
+  );
   await mongoose.disconnect();
   process.exit(0);
 }

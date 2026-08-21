@@ -18,6 +18,8 @@ export default function NavBar() {
             <NavLink to="/my-team">My Team</NavLink>
           </>
         )}
+        {user.role === "district_viewer" && <NavLink to="/my-activities">My Activities</NavLink>}
+        {user.role === "grm_focal" && <NavLink to="/my-grm-activities">My Activities</NavLink>}
         <NavLink to="/dashboard">Dashboard</NavLink>
         {user.role === "super_admin" && <NavLink to="/admin">Admin</NavLink>}
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { IoDocumentTextOutline } from "react-icons/io5";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
@@ -7,13 +7,18 @@ import Spinner from "../components/Spinner";
 import { CameraIcon } from "../components/icons";
 
 // Mirrors backend/src/config/projectCalendar.js's DAYS_BY_ACTIVITY_TYPE — Community
-// engagement and BCC campaigns run Mon-Fri; WASH-in-schools runs Mon-Thu only.
+// engagement and BCC campaigns run Mon-Fri; WASH-in-schools runs Mon-Thu only. Each type is
+// its own independent track (e.g. WASH and Community engagement can both happen the same day).
 const DAYS_BY_ACTIVITY_TYPE = {
   "Community engagement session": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
   "Behavioural change and communication campaign": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
   "Wash and health hygiene in schools": ["Monday", "Tuesday", "Wednesday", "Thursday"],
 };
 const ACTIVITY_TYPES = Object.keys(DAYS_BY_ACTIVITY_TYPE);
+const BCC_TYPE = "Behavioural change and communication campaign";
+// BCC only runs 6 times across the 18-week project — once every 3 weeks — rather than every
+// week like the other two types.
+const BCC_WEEKS = [3, 6, 9, 12, 15, 18];
 const VISIT_STATUSES = ["Pending", "In Progress", "Completed", "Deferred / Rescheduled"];
 
 function pad(n) {
@@ -26,13 +31,14 @@ export default function SubmitActivity() {
   const [teammate, setTeammate] = useState(null);
   const [facilities, setFacilities] = useState(null); // null = still loading
   const [weeks, setWeeks] = useState([]);
-  const [occupied, setOccupied] = useState(new Set()); // "week-dayOfWeek" keys already submitted by this team
+  const [teamActivities, setTeamActivities] = useState([]); // this team's active activities, used to derive occupancy
   const [time, setTime] = useState(() => {
     const d = new Date();
     return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   });
   const [facility, setFacility] = useState("");
   const [activityType, setActivityType] = useState(ACTIVITY_TYPES[0]);
+  const [attendees, setAttendees] = useState([user.id]);
   const [week, setWeek] = useState("");
   const [dayOfWeek, setDayOfWeek] = useState("");
   const [plannedActivity, setPlannedActivity] = useState("");
@@ -42,15 +48,11 @@ export default function SubmitActivity() {
   const [visitStatus, setVisitStatus] = useState("Completed");
   const [description, setDescription] = useState("");
   const [photos, setPhotos] = useState([]);
-  const [attendees, setAttendees] = useState([user.id]);
   const [busy, setBusy] = useState(false);
 
-  function loadOccupied() {
+  function loadTeamActivities() {
     api.get("/activities").then((res) => {
-      const taken = res.data
-        .filter((a) => ["submitted", "verified", "flagged"].includes(a.status))
-        .map((a) => `${a.week}-${a.dayOfWeek}`);
-      setOccupied(new Set(taken));
+      setTeamActivities(res.data.filter((a) => ["submitted", "verified", "flagged"].includes(a.status)));
     });
   }
 
@@ -58,25 +60,88 @@ export default function SubmitActivity() {
     api.get("/members/my-team").then((res) => setTeammate(res.data.teammate));
     api.get("/facilities").then((res) => setFacilities(res.data));
     api.get("/schedule/weeks").then((res) => setWeeks(res.data));
-    loadOccupied();
+    loadTeamActivities();
   }, []);
+
+  // A day is occupied for ME specifically if I'm recorded as an attendee on an existing
+  // activity for that exact (week, day, activity type) — a teammate who wasn't there can
+  // still submit their own separate one for that same day/type, and a different activity
+  // type on the same day doesn't conflict at all (WASH and Community engagement can coexist).
+  const occupied = useMemo(() => {
+    const keys = new Set();
+    for (const a of teamActivities) {
+      if ((a.attendeeIds || []).map(String).includes(user.id)) {
+        keys.add(`${a.week}-${a.dayOfWeek}-${a.activityType}`);
+      }
+    }
+    return keys;
+  }, [teamActivities, user.id]);
+
+  // BCC is one session per 3-weekly slot, not a daily-repeatable activity — once any day of
+  // that week has been submitted (for the group, so it applies to both teammates equally),
+  // the whole week is done, not just that specific day.
+  const bccWeeksDone = useMemo(() => {
+    const done = new Set();
+    for (const a of teamActivities) {
+      if (a.activityType === BCC_TYPE && (a.attendeeIds || []).map(String).includes(user.id)) {
+        done.add(a.week);
+      }
+    }
+    return done;
+  }, [teamActivities, user.id]);
+
+  const weekOptions = useMemo(() => {
+    if (activityType !== BCC_TYPE) return weeks.map((w) => ({ ...w, label: `Week ${w.weekNumber} (${new Date(w.monday).toLocaleDateString()})`, done: false }));
+    return weeks
+      .filter((w) => BCC_WEEKS.includes(w.weekNumber))
+      .map((w) => {
+        const done = bccWeeksDone.has(w.weekNumber);
+        return {
+          ...w,
+          done,
+          label: `Session ${BCC_WEEKS.indexOf(w.weekNumber) + 1} of ${BCC_WEEKS.length} — Week ${w.weekNumber} (${new Date(w.monday).toLocaleDateString()})${done ? " — completed" : ""}`,
+        };
+      });
+  }, [weeks, activityType, bccWeeksDone]);
 
   const dayOptions = useMemo(() => {
     const allDays = DAYS_BY_ACTIVITY_TYPE[activityType] || [];
     if (!week) return allDays.map((d) => ({ day: d, taken: false }));
-    return allDays.map((d) => ({ day: d, taken: occupied.has(`${week}-${d}`) }));
+    return allDays.map((d) => ({ day: d, taken: occupied.has(`${week}-${d}-${activityType}`) }));
   }, [activityType, week, occupied]);
 
-  // Switching activity type or week can invalidate the currently picked day (e.g. Friday
-  // isn't offered for WASH, or the day just became occupied) — clear it rather than submit
-  // a stale selection.
+  // Switching activity type can invalidate the currently picked week (BCC only offers 6 of
+  // the 18 weeks) or day (e.g. Friday isn't offered for WASH, or the day just became
+  // occupied) — clear them rather than submit a stale selection.
+  useEffect(() => {
+    if (week && !weekOptions.some((w) => String(w.weekNumber) === String(week) && !w.done)) {
+      setWeek("");
+    }
+  }, [weekOptions]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (dayOfWeek && !dayOptions.some((o) => o.day === dayOfWeek && !o.taken)) {
       setDayOfWeek("");
     }
   }, [dayOptions]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // BCC is a group activity — both teammates always attend together, so the checklist locks
+  // to everyone rather than letting one be excluded. Whatever was picked before switching to
+  // BCC is remembered and restored when switching to a different activity type, rather than
+  // leaving both permanently checked.
+  const preBccAttendees = useRef(null);
+  useEffect(() => {
+    if (activityType === BCC_TYPE) {
+      if (preBccAttendees.current === null) preBccAttendees.current = attendees;
+      if (teammate) setAttendees([user.id, teammate._id]);
+    } else if (preBccAttendees.current !== null) {
+      setAttendees(preBccAttendees.current);
+      preBccAttendees.current = null;
+    }
+  }, [activityType, teammate]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function toggleAttendee(id) {
+    if (activityType === BCC_TYPE) return;
     setAttendees((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
@@ -151,7 +216,7 @@ export default function SubmitActivity() {
       setDayOfWeek("");
       // The day just submitted is now occupied — refetch so it drops out of the picker
       // immediately instead of only after a manual page reload.
-      loadOccupied();
+      loadTeamActivities();
       e.target.reset();
     } catch (err) {
       showToast("error", err.response?.data?.error || "Submission failed");
@@ -204,14 +269,32 @@ export default function SubmitActivity() {
           </select>
         </label>
 
+        <fieldset>
+          <legend>Attendees</legend>
+          <label className="checkbox-row">
+            <input type="checkbox" checked disabled /> {user.name} (you)
+          </label>
+          {teammate && (
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={activityType === BCC_TYPE ? true : attendees.includes(teammate._id)}
+                disabled={activityType === BCC_TYPE}
+                onChange={() => toggleAttendee(teammate._id)}
+              />
+              {teammate.name}
+            </label>
+          )}
+        </fieldset>
+
         <div className="date-time-row">
           <label>
             Week
             <select value={week} onChange={(e) => setWeek(e.target.value)} required>
               <option value="">Select a week</option>
-              {weeks.map((w) => (
-                <option key={w.weekNumber} value={w.weekNumber}>
-                  Week {w.weekNumber} ({new Date(w.monday).toLocaleDateString()})
+              {weekOptions.map((w) => (
+                <option key={w.weekNumber} value={w.weekNumber} disabled={w.done}>
+                  {w.label}
                 </option>
               ))}
             </select>
@@ -263,19 +346,6 @@ export default function SubmitActivity() {
           Remarks / Follow-up (optional)
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
         </label>
-
-        <fieldset>
-          <legend>Attendees</legend>
-          <label className="checkbox-row">
-            <input type="checkbox" checked disabled /> {user.name} (you)
-          </label>
-          {teammate && (
-            <label className="checkbox-row">
-              <input type="checkbox" checked={attendees.includes(teammate._id)} onChange={() => toggleAttendee(teammate._id)} />
-              {teammate.name}
-            </label>
-          )}
-        </fieldset>
 
         <div>
           Photo evidence
