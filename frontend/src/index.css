@@ -1185,4 +1185,34 @@ fieldset {
   .moderation input {
     flex-basis: 100%;
   }
+
+  .modal-backdrop {
+    padding: 0.5rem;
+  }
+
+  .modal {
+    max-height: 92vh;
+  }
+
+  .modal-scroll {
+    max-height: 92vh;
+  }
+
+  .modal-header h2 {
+    font-size: 1.15rem;
+  }
+
+  .status-reason {
+    display: block;
+    margin-left: 0;
+    margin-top: 0.35rem;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .photo-grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  }
 }
