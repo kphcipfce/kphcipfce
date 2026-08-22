@@ -90,6 +90,12 @@ function MonitoringDashboard() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const canModerate = user.role === "super_admin";
+  // A GRM Focal Person only ever submits GRM activities — the social mobilizer and
+  // coordinator tables are irrelevant to them and stay hidden (and unfetched) here.
+  const isGrmFocal = user.role === "grm_focal";
+  // A District Coordinator's own work is unrelated to GRM Focal Person activities — their
+  // table stays hidden (and unfetched) for the same reason, just the other way around.
+  const hideGrmTable = user.role === "district_viewer";
   const [monitoring, setMonitoring] = useState(null);
   const [activities, setActivities] = useState([]);
   const [coordinatorActivities, setCoordinatorActivities] = useState([]);
@@ -99,14 +105,21 @@ function MonitoringDashboard() {
   const [openGrmId, setOpenGrmId] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [exportDone, setExportDone] = useState(false);
+  const [exportingCoordinator, setExportingCoordinator] = useState(false);
+  const [exportDoneCoordinator, setExportDoneCoordinator] = useState(false);
+  const [exportingGrm, setExportingGrm] = useState(false);
+  const [exportDoneGrm, setExportDoneGrm] = useState(false);
 
   async function load() {
-    await Promise.all([
-      api.get("/dashboard/monitoring").then((res) => setMonitoring(res.data)),
-      api.get("/activities").then((res) => setActivities(res.data)),
-      api.get("/coordinator-activities").then((res) => setCoordinatorActivities(res.data)),
-      api.get("/grm-activities").then((res) => setGrmActivities(res.data)),
-    ]);
+    const requests = [api.get("/dashboard/monitoring").then((res) => setMonitoring(res.data))];
+    if (!hideGrmTable) requests.push(api.get("/grm-activities").then((res) => setGrmActivities(res.data)));
+    if (!isGrmFocal) {
+      requests.push(
+        api.get("/activities").then((res) => setActivities(res.data)),
+        api.get("/coordinator-activities").then((res) => setCoordinatorActivities(res.data)),
+      );
+    }
+    await Promise.all(requests);
   }
 
   useEffect(() => {
@@ -115,25 +128,38 @@ function MonitoringDashboard() {
 
   // A plain <a href> can't carry the Authorization header the API requires, so the file
   // is fetched with the authenticated client and handed to the browser as a blob instead.
-  async function exportFieldTracker() {
-    setExporting(true);
+  async function downloadTracker(endpoint, filename, label, setBusy, setDone) {
+    setBusy(true);
     try {
-      const res = await api.get("/dashboard/export.xlsx", { responseType: "blob" });
+      const res = await api.get(endpoint, { responseType: "blob" });
       const url = URL.createObjectURL(res.data);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "field-tracker.xlsx";
+      link.download = filename;
       link.click();
       URL.revokeObjectURL(url);
-      showToast("success", "Field tracker exported", "The Excel file has started downloading.");
-      setExportDone(true);
-      setTimeout(() => setExportDone(false), 2000);
+      showToast("success", `${label} exported`, "The Excel file has started downloading.");
+      setDone(true);
+      setTimeout(() => setDone(false), 2000);
     } catch (err) {
-      showToast("error", err.response?.data?.error || "Failed to export field tracker");
+      showToast("error", err.response?.data?.error || `Failed to export ${label.toLowerCase()}`);
     } finally {
-      setExporting(false);
+      setBusy(false);
     }
   }
+
+  const exportFieldTracker = () =>
+    downloadTracker("/dashboard/export.xlsx", "field-tracker.xlsx", "Field tracker", setExporting, setExportDone);
+  const exportCoordinatorTracker = () =>
+    downloadTracker(
+      "/dashboard/export-coordinator.xlsx",
+      "dcmo-fmo-tracker.xlsx",
+      "DCMO/FMO tracker",
+      setExportingCoordinator,
+      setExportDoneCoordinator,
+    );
+  const exportGrmTracker = () =>
+    downloadTracker("/dashboard/export-grm.xlsx", "grm-tracker.xlsx", "GRM tracker", setExportingGrm, setExportDoneGrm);
 
   return (
     <div className="page">
@@ -153,17 +179,47 @@ function MonitoringDashboard() {
             </span>
             {exporting && <span className="btn-spinner" />}
           </button>
+
+          <button
+            type="button"
+            className={`btn-export ${exportingCoordinator ? "btn-loading" : ""}`}
+            disabled={exportingCoordinator}
+            onClick={exportCoordinatorTracker}
+          >
+            <span className="btn-label">
+              {exportDoneCoordinator ? <MdFileDownloadDone /> : <IoMdDownload />}
+              Export DCMO/FMO Tracker
+            </span>
+            {exportingCoordinator && <span className="btn-spinner" />}
+          </button>
+
+          <button
+            type="button"
+            className={`btn-export ${exportingGrm ? "btn-loading" : ""}`}
+            disabled={exportingGrm}
+            onClick={exportGrmTracker}
+          >
+            <span className="btn-label">
+              {exportDoneGrm ? <MdFileDownloadDone /> : <IoMdDownload />}
+              Export GRM Tracker
+            </span>
+            {exportingGrm && <span className="btn-spinner" />}
+          </button>
         </div>
       )}
 
       {monitoring && (
         <>
-          <div className="stat-row">
-            <div className="stat">
-              <span className="stat-value">{monitoring.attendanceRate != null ? `${Math.round(monitoring.attendanceRate * 100)}%` : "—"}</span>
-              <span className="stat-label">Attendance rate</span>
+          {/* Attendance rate is a social mobilizer concept (present/absent per activity) —
+              meaningless for a GRM Focal Person, so it's hidden for that role. */}
+          {!isGrmFocal && (
+            <div className="stat-row">
+              <div className="stat">
+                <span className="stat-value">{monitoring.attendanceRate != null ? `${Math.round(monitoring.attendanceRate * 100)}%` : "—"}</span>
+                <span className="stat-label">Attendance rate</span>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="chart-row">
             <div className="chart-col">
@@ -198,126 +254,138 @@ function MonitoringDashboard() {
             </div>
           </div>
 
-          <h3>Attendance rate</h3>
-          {(() => {
-            const pct = monitoring.attendanceRate != null ? Math.round(monitoring.attendanceRate * 100) : null;
-            return (
-              <div className="meter" role="img" aria-label={`Attendance rate ${pct != null ? `${pct}%` : "unavailable"}`}>
-                <div className="meter-track">
-                  <div className="meter-fill" style={{ width: `${pct ?? 0}%`, backgroundColor: severityColor(pct) }} />
-                </div>
-                <span className="meter-value">{pct != null ? `${pct}%` : "—"}</span>
-              </div>
-            );
-          })()}
+          {!isGrmFocal && (
+            <>
+              <h3>Attendance rate</h3>
+              {(() => {
+                const pct = monitoring.attendanceRate != null ? Math.round(monitoring.attendanceRate * 100) : null;
+                return (
+                  <div className="meter" role="img" aria-label={`Attendance rate ${pct != null ? `${pct}%` : "unavailable"}`}>
+                    <div className="meter-track">
+                      <div className="meter-fill" style={{ width: `${pct ?? 0}%`, backgroundColor: severityColor(pct) }} />
+                    </div>
+                    <span className="meter-value">{pct != null ? `${pct}%` : "—"}</span>
+                  </div>
+                );
+              })()}
+            </>
+          )}
         </>
       )}
 
-      <h3>Social Mobilizer Activity Records</h3>
-      <div className="table-scroll">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>District</th>
-              <th>Team</th>
-              <th>Type</th>
-              <th>Review</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {activities.map((a) => (
-              <tr key={a._id}>
-                <td>{new Date(a.dateTime).toLocaleDateString()}</td>
-                <td>{a.district?.name}</td>
-                <td>{a.team?.name}</td>
-                <td>{a.activityType}</td>
-                <td>
-                  <button type="button" className="icon-btn" onClick={() => setOpenId(a._id)} aria-label="Preview activity record">
-                    <EyeIcon />
-                  </button>
-                </td>
-                <td className={statusClassName(a)}>{statusLabel(a)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {!isGrmFocal && (
+        <>
+          <h3>Social Mobilizer Activity Records</h3>
+          <div className="table-scroll">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>District</th>
+                  <th>Team</th>
+                  <th>Type</th>
+                  <th>Review</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activities.map((a) => (
+                  <tr key={a._id}>
+                    <td>{new Date(a.dateTime).toLocaleDateString()}</td>
+                    <td>{a.district?.name}</td>
+                    <td>{a.team?.name}</td>
+                    <td>{a.activityType}</td>
+                    <td>
+                      <button type="button" className="icon-btn" onClick={() => setOpenId(a._id)} aria-label="Preview activity record">
+                        <EyeIcon />
+                      </button>
+                    </td>
+                    <td className={statusClassName(a)}>{statusLabel(a)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-      {/* Kept in a separate table (and a separate collection server-side) so these never mix
-          into the Field Tracker export or any of the charts/stats above, which are all built
-          around social mobilizer team/facility visits. */}
-      <h3>District Coordinator Activity Records</h3>
-      <div className="table-scroll">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>District</th>
-              <th>Type</th>
-              <th>Refresher</th>
-              <th>Review</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {coordinatorActivities.map((a) => (
-              <tr key={a._id}>
-                <td>{new Date(a.dateTime).toLocaleDateString()}</td>
-                <td>{a.district?.name}</td>
-                <td>{a.activityType}</td>
-                <td>{a.isRefresher ? "Yes" : "No"}</td>
-                <td>
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    onClick={() => setOpenCoordinatorId(a._id)}
-                    aria-label="Preview coordinator activity record"
-                  >
-                    <EyeIcon />
-                  </button>
-                </td>
-                <td className={a.status === "flagged" ? "status-flagged" : a.status === "verified" ? "status-present" : ""}>{a.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          {/* Kept in a separate table (and a separate collection server-side) so these never mix
+              into the Field Tracker export or any of the charts/stats above, which are all built
+              around social mobilizer team/facility visits. */}
+          <h3>District Coordinator Activity Records</h3>
+          <div className="table-scroll">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>District</th>
+                  <th>Type</th>
+                  <th>Refresher</th>
+                  <th>Review</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {coordinatorActivities.map((a) => (
+                  <tr key={a._id}>
+                    <td>{new Date(a.dateTime).toLocaleDateString()}</td>
+                    <td>{a.district?.name}</td>
+                    <td>{a.activityType}</td>
+                    <td>{a.isRefresher ? "Yes" : "No"}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        onClick={() => setOpenCoordinatorId(a._id)}
+                        aria-label="Preview coordinator activity record"
+                      >
+                        <EyeIcon />
+                      </button>
+                    </td>
+                    <td className={a.status === "flagged" ? "status-flagged" : a.status === "verified" ? "status-present" : ""}>{a.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
-      {/* Same isolation as the coordinator table above — its own collection, so GRM data
-          never touches the Field Tracker export or the social mobilizer charts/stats. */}
-      <h3>GRM Focal Person Activity Records</h3>
-      <div className="table-scroll">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>District</th>
-              <th>Type</th>
-              <th>Refresher</th>
-              <th>Review</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {grmActivities.map((a) => (
-              <tr key={a._id}>
-                <td>{new Date(a.dateTime).toLocaleDateString()}</td>
-                <td>{a.district?.name}</td>
-                <td>{a.activityType}</td>
-                <td>{a.isRefresher ? "Yes" : "No"}</td>
-                <td>
-                  <button type="button" className="icon-btn" onClick={() => setOpenGrmId(a._id)} aria-label="Preview GRM activity record">
-                    <EyeIcon />
-                  </button>
-                </td>
-                <td className={a.status === "flagged" ? "status-flagged" : a.status === "verified" ? "status-present" : ""}>{a.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {!hideGrmTable && (
+        <>
+          {/* Same isolation as the coordinator table above — its own collection, so GRM data
+              never touches the Field Tracker export or the social mobilizer charts/stats. */}
+          <h3>GRM Focal Person Activity Records</h3>
+          <div className="table-scroll">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>District</th>
+                  <th>Type</th>
+                  <th>Refresher</th>
+                  <th>Review</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {grmActivities.map((a) => (
+                  <tr key={a._id}>
+                    <td>{new Date(a.dateTime).toLocaleDateString()}</td>
+                    <td>{a.district?.name}</td>
+                    <td>{a.activityType}</td>
+                    <td>{a.isRefresher ? "Yes" : "No"}</td>
+                    <td>
+                      <button type="button" className="icon-btn" onClick={() => setOpenGrmId(a._id)} aria-label="Preview GRM activity record">
+                        <EyeIcon />
+                      </button>
+                    </td>
+                    <td className={a.status === "flagged" ? "status-flagged" : a.status === "verified" ? "status-present" : ""}>{a.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       {openId && <ActivityDetail activityId={openId} canModerate={canModerate} onClose={() => setOpenId(null)} onStatusChanged={load} />}
       {openCoordinatorId && (

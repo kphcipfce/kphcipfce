@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 const weekEntrySchema = new mongoose.Schema({
   weekNumber: { type: Number, required: true },
   date: { type: Date, required: true },
+  dayOfWeek: { type: String, enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], required: true },
 });
 
 // Same shape as CoordinatorPlan — schedules GRM Focal Person trainings (GRM capacity

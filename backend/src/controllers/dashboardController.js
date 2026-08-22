@@ -4,12 +4,14 @@ import ActivityRecord from "../models/ActivityRecord.js";
 import AttendanceEntry from "../models/AttendanceEntry.js";
 import Team from "../models/Team.js";
 import Member from "../models/Member.js";
+import CoordinatorActivityRecord from "../models/CoordinatorActivityRecord.js";
+import GrmActivityRecord from "../models/GrmActivityRecord.js";
 
 function buildMatch(req) {
   const match = {};
-  // A district_viewer only ever sees their own district — this overrides any
+  // A district_viewer or grm_focal only ever sees their own district — this overrides any
   // district query param they might pass, same rule as a member being locked to their team.
-  if (req.user.role === "district_viewer") {
+  if (req.user.role === "district_viewer" || req.user.role === "grm_focal") {
     match.district = req.user.district;
   } else if (req.query.district) {
     match.district = new mongoose.Types.ObjectId(req.query.district);
@@ -265,4 +267,105 @@ export async function exportFieldTracker(req, res) {
   res.setHeader("Content-Disposition", "attachment; filename=field-tracker.xlsx");
   await workbook.xlsx.write(res);
   res.end();
+}
+
+// Shared by exportCoordinatorTracker/exportGrmTracker below — same shape as the Field Tracker
+// export, minus attendance (a coordinator/focal person submits alone, no per-attendee list so
+// there's no "absent" approval state) and with Week/Day resolved from the plan's weeks
+// subdocument instead of a flat field like the fixed social-mobilizer calendar has.
+function buildTrackerMatch(req) {
+  const match = {};
+  if (req.query.district) match.district = new mongoose.Types.ObjectId(req.query.district);
+  if (req.query.activityType) match.activityType = req.query.activityType;
+  if (req.query.status) match.status = req.query.status;
+  if (req.query.from || req.query.to) {
+    match.dateTime = {};
+    if (req.query.from) match.dateTime.$gte = new Date(req.query.from);
+    if (req.query.to) match.dateTime.$lte = new Date(req.query.to);
+  }
+  return match;
+}
+
+async function exportActivityTracker(req, res, Model, sheetTitle, filename) {
+  const match = buildTrackerMatch(req);
+  const activities = await Model.find(match)
+    .populate("district", "name")
+    .populate("facility", "name")
+    .populate("plan", "weeks")
+    .sort("-dateTime")
+    .lean();
+
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet(sheetTitle);
+  sheet.columns = [
+    { header: "Date", key: "date", width: 12 },
+    { header: "Week", key: "week", width: 8 },
+    { header: "Day", key: "day", width: 12 },
+    { header: "District", key: "district", width: 14 },
+    { header: "Health Facility / Community", key: "healthFacility", width: 28 },
+    { header: "Activity Type", key: "activityType", width: 26 },
+    { header: "Refresher", key: "refresher", width: 12 },
+    { header: "Planned Activity", key: "plannedActivity", width: 28 },
+    { header: "Responsible Person", key: "responsiblePerson", width: 20 },
+    { header: "Target Group", key: "targetGroup", width: 20 },
+    { header: "Expected Output", key: "expectedOutput", width: 24 },
+    { header: "Status", key: "status", width: 16 },
+    { header: "Remarks / Follow-up", key: "remarks", width: 28 },
+    { header: "Approval", key: "approval", width: 14 },
+  ];
+  sheet.getRow(1).eachCell((cell) => {
+    cell.font = { bold: true };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC6D9B8" } };
+  });
+  sheet.autoFilter = { from: "A1", to: "N1" };
+
+  for (const a of activities) {
+    const weekEntry = a.plan?.weeks?.find((w) => String(w._id) === String(a.planWeek));
+
+    let approval = "";
+    if (a.status === "flagged") approval = "flagged";
+    else if (a.status === "verified") approval = "verified";
+
+    const row = sheet.addRow({
+      date: new Date(a.dateTime).toLocaleDateString("en-US"),
+      week: weekEntry?.weekNumber ?? "",
+      day: weekEntry?.dayOfWeek ?? "",
+      district: a.district?.name || "",
+      healthFacility: a.facility?.name || "",
+      activityType: a.activityType,
+      refresher: a.isRefresher ? "Yes" : "No",
+      plannedActivity: a.plannedActivity,
+      responsiblePerson: a.responsiblePerson,
+      targetGroup: a.targetGroup,
+      expectedOutput: a.expectedOutput,
+      status: a.visitStatus,
+      remarks: a.description || "",
+      approval,
+    });
+
+    const style = APPROVAL_STYLE[approval];
+    if (style) {
+      const cell = row.getCell("approval");
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: style.fill } };
+      cell.font = { bold: true, color: { argb: style.font } };
+    }
+
+    const statusFill = VISIT_STATUS_FILL[a.visitStatus];
+    if (statusFill) {
+      row.getCell("status").fill = { type: "pattern", pattern: "solid", fgColor: { argb: statusFill } };
+    }
+  }
+
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
+  await workbook.xlsx.write(res);
+  res.end();
+}
+
+export async function exportCoordinatorTracker(req, res) {
+  await exportActivityTracker(req, res, CoordinatorActivityRecord, "DCMO-FMO Tracker", "dcmo-fmo-tracker.xlsx");
+}
+
+export async function exportGrmTracker(req, res) {
+  await exportActivityTracker(req, res, GrmActivityRecord, "GRM Tracker", "grm-tracker.xlsx");
 }

@@ -559,8 +559,10 @@ const MONTH_NAMES = [
   "December",
 ];
 
+const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
 function emptyWeek() {
-  return { date: "" };
+  return { date: "", dayOfWeek: "" };
 }
 
 function CoordinatorPlansTab() {
@@ -657,6 +659,19 @@ function CoordinatorPlansTab() {
                 Week {i + 1} date
                 <input type="date" value={w.date} onChange={(e) => updateWeek(i, "date", e.target.value)} required />
               </label>
+              <label>
+                Day
+                <select value={w.dayOfWeek} onChange={(e) => updateWeek(i, "dayOfWeek", e.target.value)} required>
+                  <option value="" disabled>
+                    Select day
+                  </option>
+                  {WEEKDAYS.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </label>
               {form.weeks.length > 1 && (
                 <button type="button" className="btn-delete-icon" onClick={() => removeWeek(i)} aria-label="Remove week">
                   <MdCancel />
@@ -712,7 +727,7 @@ function CoordinatorPlansTab() {
                 <td>
                   {p.weeks.map((w) => (
                     <div key={w._id}>
-                      Week {w.weekNumber}: {new Date(w.date).toLocaleDateString()}
+                      Week {w.weekNumber}: {new Date(w.date).toLocaleDateString()} ({w.dayOfWeek})
                     </div>
                   ))}
                 </td>
@@ -834,6 +849,19 @@ function GrmPlansTab() {
                 Week {i + 1} date
                 <input type="date" value={w.date} onChange={(e) => updateWeek(i, "date", e.target.value)} required />
               </label>
+              <label>
+                Day
+                <select value={w.dayOfWeek} onChange={(e) => updateWeek(i, "dayOfWeek", e.target.value)} required>
+                  <option value="" disabled>
+                    Select day
+                  </option>
+                  {WEEKDAYS.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </label>
               {form.weeks.length > 1 && (
                 <button type="button" className="btn-delete-icon" onClick={() => removeWeek(i)} aria-label="Remove week">
                   <MdCancel />
@@ -889,7 +917,7 @@ function GrmPlansTab() {
                 <td>
                   {p.weeks.map((w) => (
                     <div key={w._id}>
-                      Week {w.weekNumber}: {new Date(w.date).toLocaleDateString()}
+                      Week {w.weekNumber}: {new Date(w.date).toLocaleDateString()} ({w.dayOfWeek})
                     </div>
                   ))}
                 </td>

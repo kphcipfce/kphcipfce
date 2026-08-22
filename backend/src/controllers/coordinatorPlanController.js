@@ -4,9 +4,11 @@ import CoordinatorActivityRecord from "../models/CoordinatorActivityRecord.js";
 import { logAction } from "../middleware/audit.js";
 
 // Super Admin sees every plan in full (for oversight — every week, regardless of status).
-// A district_viewer sees only plans assigned to their own district, with occupied weeks
-// removed from the picker: any week that already has a record — submitted, verified, or
-// flagged — has been used up, so it's never submittable again from here.
+// A district_viewer sees only plans assigned to their own district, oldest-first (the first
+// week added is the first one offered), with occupied weeks removed from the picker: any week
+// that already has a record — submitted, verified, or flagged — has been used up, so it's
+// never submittable again from here. Different weeks (even sharing the same date, since the
+// admin can assign more than one) are unaffected — occupancy is scoped to the exact week.
 export async function listCoordinatorPlans(req, res) {
   if (req.user.role === "super_admin") {
     const plans = await CoordinatorPlan.find({}).populate("districts", "name").populate("createdBy", "name").sort("-createdAt");
@@ -16,7 +18,7 @@ export async function listCoordinatorPlans(req, res) {
   const plans = await CoordinatorPlan.find({ districts: req.user.district })
     .populate("districts", "name")
     .populate("createdBy", "name")
-    .sort("-createdAt")
+    .sort("createdAt")
     .lean();
 
   const occupied = await CoordinatorActivityRecord.find({
@@ -37,8 +39,8 @@ export async function createCoordinatorPlan(req, res) {
   if (!month || month < 1 || month > 12 || !year) {
     return res.status(400).json({ error: "Valid month (1-12) and year required" });
   }
-  if (!Array.isArray(weeks) || weeks.length === 0 || weeks.some((w) => !w.date)) {
-    return res.status(400).json({ error: "At least one week with a date required" });
+  if (!Array.isArray(weeks) || weeks.length === 0 || weeks.some((w) => !w.date || !w.dayOfWeek)) {
+    return res.status(400).json({ error: "At least one week with a date and day of week required" });
   }
   if (!Array.isArray(districts) || districts.length === 0) {
     return res.status(400).json({ error: "At least one district must be assigned" });
@@ -48,7 +50,7 @@ export async function createCoordinatorPlan(req, res) {
   if (foundDistricts.length !== districts.length) return res.status(400).json({ error: "One or more districts not found" });
 
   // weekNumber is assigned server-side from array order, never trusted from the client.
-  const normalizedWeeks = weeks.map((w, i) => ({ weekNumber: i + 1, date: w.date }));
+  const normalizedWeeks = weeks.map((w, i) => ({ weekNumber: i + 1, date: w.date, dayOfWeek: w.dayOfWeek }));
 
   const plan = await CoordinatorPlan.create({ month, year, weeks: normalizedWeeks, districts, createdBy: req.user._id });
   await logAction(req.user._id, "create", "CoordinatorPlan", plan._id, { month, year, districts });

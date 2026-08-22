@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { IoDocumentTextOutline } from "react-icons/io5";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
@@ -40,8 +40,14 @@ export default function MyGrmActivities() {
   const [photos, setPhotos] = useState([]);
   const [busy, setBusy] = useState(false);
 
+  // Guards against an in-flight request (e.g. React StrictMode's duplicate mount effect)
+  // resolving after a newer one and clobbering fresher data with stale results.
+  const loadSeq = useRef(0);
   function loadPlans() {
-    api.get("/grm-plans").then((res) => setPlans(res.data));
+    const seq = ++loadSeq.current;
+    api.get("/grm-plans").then((res) => {
+      if (seq === loadSeq.current) setPlans(res.data);
+    });
   }
 
   useEffect(() => {
@@ -57,7 +63,7 @@ export default function MyGrmActivities() {
           planId: plan._id,
           weekId: w._id,
           date: w.date,
-          label: `${MONTH_NAMES[plan.month - 1]} ${plan.year} — Week ${w.weekNumber} (${new Date(w.date).toLocaleDateString()})`,
+          label: `${MONTH_NAMES[plan.month - 1]} ${plan.year} — Week ${w.weekNumber} (${new Date(w.date).toLocaleDateString()}) — ${w.dayOfWeek}`,
         })),
       ),
     [plans],

@@ -4,8 +4,8 @@ import GrmActivityRecord from "../models/GrmActivityRecord.js";
 import { logAction } from "../middleware/audit.js";
 
 // Same pattern as coordinatorPlanController — Super Admin sees every plan in full; a
-// grm_focal account sees only plans assigned to their own district, with occupied weeks
-// removed from the picker.
+// grm_focal account sees only plans assigned to their own district, oldest-first, with
+// occupied weeks removed from the picker.
 export async function listGrmPlans(req, res) {
   if (req.user.role === "super_admin") {
     const plans = await GrmPlan.find({}).populate("districts", "name").populate("createdBy", "name").sort("-createdAt");
@@ -15,7 +15,7 @@ export async function listGrmPlans(req, res) {
   const plans = await GrmPlan.find({ districts: req.user.district })
     .populate("districts", "name")
     .populate("createdBy", "name")
-    .sort("-createdAt")
+    .sort("createdAt")
     .lean();
 
   const occupied = await GrmActivityRecord.find({
@@ -36,8 +36,8 @@ export async function createGrmPlan(req, res) {
   if (!month || month < 1 || month > 12 || !year) {
     return res.status(400).json({ error: "Valid month (1-12) and year required" });
   }
-  if (!Array.isArray(weeks) || weeks.length === 0 || weeks.some((w) => !w.date)) {
-    return res.status(400).json({ error: "At least one week with a date required" });
+  if (!Array.isArray(weeks) || weeks.length === 0 || weeks.some((w) => !w.date || !w.dayOfWeek)) {
+    return res.status(400).json({ error: "At least one week with a date and day of week required" });
   }
   if (!Array.isArray(districts) || districts.length === 0) {
     return res.status(400).json({ error: "At least one district must be assigned" });
@@ -46,7 +46,7 @@ export async function createGrmPlan(req, res) {
   const foundDistricts = await District.find({ _id: { $in: districts } });
   if (foundDistricts.length !== districts.length) return res.status(400).json({ error: "One or more districts not found" });
 
-  const normalizedWeeks = weeks.map((w, i) => ({ weekNumber: i + 1, date: w.date }));
+  const normalizedWeeks = weeks.map((w, i) => ({ weekNumber: i + 1, date: w.date, dayOfWeek: w.dayOfWeek }));
 
   const plan = await GrmPlan.create({ month, year, weeks: normalizedWeeks, districts, createdBy: req.user._id });
   await logAction(req.user._id, "create", "GrmPlan", plan._id, { month, year, districts });
