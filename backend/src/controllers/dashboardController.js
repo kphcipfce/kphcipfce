@@ -81,15 +81,29 @@ export async function monitoring(req, res) {
   }
   const byGenderActivityType = [...byGenderActivityTypeMap.values()];
 
-  // Attendance rate only counts verified activities — a flagged (unconfirmed) record's
-  // claimed attendance shouldn't inflate the number, and a merely-submitted one hasn't
-  // been checked yet. This overrides any status filter the caller passed in.
-  const verifiedIds = await ActivityRecord.find({ ...match, status: "verified" }).distinct("_id");
-  const attendanceAgg = await AttendanceEntry.aggregate([
-    { $match: { activityRecord: { $in: verifiedIds } } },
-    { $group: { _id: null, total: { $sum: 1 }, present: { $sum: { $cond: ["$present", 1, 0] } } } },
+  // "Attendance rate" is really a verified-vs-total rate spanning all three activity-record
+  // collections (social mobilizer, coordinator, GRM focal) — "verified" is the one status value
+  // common to all of them, unlike present/absent attendee data, which only social mobilizer
+  // group visits track at all. Scoped by district only (team/activityType/status query filters
+  // are social-mobilizer-specific and wouldn't apply across the other two collections).
+  const districtOnlyMatch = match.district ? { district: match.district } : {};
+  const [smCounts, coordCounts, grmCounts] = await Promise.all([
+    ActivityRecord.aggregate([
+      { $match: districtOnlyMatch },
+      { $group: { _id: null, total: { $sum: 1 }, verified: { $sum: { $cond: [{ $eq: ["$status", "verified"] }, 1, 0] } } } },
+    ]),
+    CoordinatorActivityRecord.aggregate([
+      { $match: districtOnlyMatch },
+      { $group: { _id: null, total: { $sum: 1 }, verified: { $sum: { $cond: [{ $eq: ["$status", "verified"] }, 1, 0] } } } },
+    ]),
+    GrmActivityRecord.aggregate([
+      { $match: districtOnlyMatch },
+      { $group: { _id: null, total: { $sum: 1 }, verified: { $sum: { $cond: [{ $eq: ["$status", "verified"] }, 1, 0] } } } },
+    ]),
   ]);
-  const attendanceRate = attendanceAgg[0] ? attendanceAgg[0].present / attendanceAgg[0].total : null;
+  const totalRecords = (smCounts[0]?.total || 0) + (coordCounts[0]?.total || 0) + (grmCounts[0]?.total || 0);
+  const totalVerified = (smCounts[0]?.verified || 0) + (coordCounts[0]?.verified || 0) + (grmCounts[0]?.verified || 0);
+  const attendanceRate = totalRecords > 0 ? totalVerified / totalRecords : null;
 
   res.json({ byTeam, byDistrict, byGenderActivityType, attendanceRate });
 }
