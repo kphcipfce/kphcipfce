@@ -205,7 +205,7 @@ export default function SubmitActivity() {
       if (flags.anyDuplicate) statusSummary += " Duplicate image flagged for review.";
       if (flags.anyLocationUnverified) statusSummary += " Location not verified.";
       if (flags.anyCaptureDateMismatch) statusSummary += " Photo's capture date doesn't match today, flagged for review.";
-      showToast("success", "Activity submitted please Donot resubmit the same weeks activity twice", statusSummary);
+      showToast("success", "Activity submitted successfully", statusSummary);
 
       setPlannedActivity("");
       setTargetGroup("");
