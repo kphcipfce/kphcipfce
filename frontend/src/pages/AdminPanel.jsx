@@ -727,7 +727,7 @@ function CoordinatorPlansTab() {
                 <td>
                   {p.weeks.map((w) => (
                     <div key={w._id}>
-                      Week {w.weekNumber}: {new Date(w.date).toLocaleDateString()} ({w.dayOfWeek})
+                      Week {w.weekNumber}: {new Date(w.date).toLocaleDateString("en-GB")} ({w.dayOfWeek})
                     </div>
                   ))}
                 </td>
@@ -917,7 +917,7 @@ function GrmPlansTab() {
                 <td>
                   {p.weeks.map((w) => (
                     <div key={w._id}>
-                      Week {w.weekNumber}: {new Date(w.date).toLocaleDateString()} ({w.dayOfWeek})
+                      Week {w.weekNumber}: {new Date(w.date).toLocaleDateString("en-GB")} ({w.dayOfWeek})
                     </div>
                   ))}
                 </td>

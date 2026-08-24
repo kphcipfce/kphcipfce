@@ -63,7 +63,7 @@ export default function MyGrmActivities() {
           planId: plan._id,
           weekId: w._id,
           date: w.date,
-          label: `${MONTH_NAMES[plan.month - 1]} ${plan.year} — Week ${w.weekNumber} (${new Date(w.date).toLocaleDateString()}) — ${w.dayOfWeek}`,
+          label: `${MONTH_NAMES[plan.month - 1]} ${plan.year} — Week ${w.weekNumber} (${new Date(w.date).toLocaleDateString("en-GB")}) — ${w.dayOfWeek}`,
         })),
       ),
     [plans],

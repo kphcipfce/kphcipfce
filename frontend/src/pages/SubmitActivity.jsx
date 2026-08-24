@@ -91,7 +91,7 @@ export default function SubmitActivity() {
   }, [teamActivities, user.id]);
 
   const weekOptions = useMemo(() => {
-    if (activityType !== BCC_TYPE) return weeks.map((w) => ({ ...w, label: `Week ${w.weekNumber} (${new Date(w.monday).toLocaleDateString()})`, done: false }));
+    if (activityType !== BCC_TYPE) return weeks.map((w) => ({ ...w, label: `Week ${w.weekNumber} (${new Date(w.monday).toLocaleDateString("en-GB")})`, done: false }));
     return weeks
       .filter((w) => BCC_WEEKS.includes(w.weekNumber))
       .map((w) => {
@@ -99,7 +99,7 @@ export default function SubmitActivity() {
         return {
           ...w,
           done,
-          label: `Session ${BCC_WEEKS.indexOf(w.weekNumber) + 1} of ${BCC_WEEKS.length} — Week ${w.weekNumber} (${new Date(w.monday).toLocaleDateString()})${done ? " — completed" : ""}`,
+          label: `Session ${BCC_WEEKS.indexOf(w.weekNumber) + 1} of ${BCC_WEEKS.length} — Week ${w.weekNumber} (${new Date(w.monday).toLocaleDateString("en-GB")})${done ? " — completed" : ""}`,
         };
       });
   }, [weeks, activityType, bccWeeksDone]);
