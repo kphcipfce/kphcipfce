@@ -212,14 +212,21 @@ function MonitoringDashboard() {
         <>
           {/* Attendance rate is a social mobilizer concept (present/absent per activity) —
               meaningless for a GRM Focal Person, so it's hidden for that role. */}
-          {!isGrmFocal && (
-            <div className="stat-row">
-              <div className="stat">
-                <span className="stat-value">{monitoring.attendanceRate != null ? `${Math.round(monitoring.attendanceRate * 100)}%` : "—"}</span>
-                <span className="stat-label">Attendance rate</span>
-              </div>
-            </div>
-          )}
+          {!isGrmFocal &&
+            (() => {
+              const pct = monitoring.attendanceRate != null ? Math.round(monitoring.attendanceRate * 100) : null;
+              const color = severityColor(pct);
+              return (
+                <div className="stat-row">
+                  <div className="stat stat-attendance">
+                    <span className="stat-value" style={{ color }}>
+                      {pct != null ? `${pct}%` : "—"}
+                    </span>
+                    <span className="stat-label">Attendance rate</span>
+                  </div>
+                </div>
+              );
+            })()}
 
           <div className="chart-row">
             <div className="chart-col">

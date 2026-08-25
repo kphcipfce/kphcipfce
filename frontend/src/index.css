@@ -5,7 +5,7 @@
   --gray-100: #eceef0;
   --gray-300: #c8ccd1;
   --gray-600: #5b6470;
-  --gray-900: #002244;
+  --gray-900: #113961;
   --accent-light: #cceef8;
   font-family:
     Inter,
@@ -825,6 +825,24 @@ fieldset {
 .stat-label {
   color: var(--gray-600);
   font-size: 0.85rem;
+}
+
+.stat-attendance {
+  box-shadow: 0 2px 8px rgba(0, 34, 68, 0.08);
+  transition: box-shadow 0.2s ease;
+}
+
+.stat-attendance:hover {
+  box-shadow: 0 4px 12px rgba(0, 34, 68, 0.12);
+}
+
+.stat-attendance .stat-label {
+  font-weight: 700;
+}
+
+.stat-attendance .stat-value {
+  font-size: 2.25rem;
+  transition: color 0.2s ease;
 }
 
 .meter {
