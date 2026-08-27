@@ -226,7 +226,7 @@ function MonitoringDashboard() {
             <div className="chart-col">
               <h3>By District</h3>
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={monitoring.byDistrict} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+                <BarChart data={monitoring.byDistrict} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="district" />
                   <YAxis allowDecimals={false} width={40} />
@@ -245,14 +245,14 @@ function MonitoringDashboard() {
                   district-scoped for those two roles' own dashboards, global for Super Admin. */}
               <h3>By Activity Type</h3>
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={monitoring.byActivityTypeGender} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+                <BarChart data={monitoring.byActivityTypeGender} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   {/* Type names are dropped from the axis — a hover tooltip already names each
                       bar's activity type, so a repeated label underneath is redundant. */}
-                  <XAxis dataKey="activityType" tick={false} />
+                  <XAxis dataKey="activityType" tick={false} height={30} />
                   <YAxis allowDecimals={false} width={40} />
                   <Tooltip />
-                  <Legend height={30} iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "0.75rem" }} />
+                  <Legend height={60} iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "0.75rem" }} />
                   <Bar dataKey="Male" fill={GENDER_COLORS.Male} name="Male" />
                   <Bar dataKey="Female" fill={GENDER_COLORS.Female} name="Female" />
                 </BarChart>
