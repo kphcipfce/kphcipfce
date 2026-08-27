@@ -64,6 +64,8 @@ export default function SubmitActivity() {
   const [week, setWeek] = useState("");
   const [dayOfWeek, setDayOfWeek] = useState("");
   const [plannedActivity, setPlannedActivity] = useState("");
+  const [maleAttendees, setMaleAttendees] = useState("0");
+  const [femaleAttendees, setFemaleAttendees] = useState("0");
   const [responsiblePerson, setResponsiblePerson] = useState(user.name);
   const [targetGroup, setTargetGroup] = useState("");
   const [expectedOutput, setExpectedOutput] = useState("");
@@ -231,6 +233,8 @@ export default function SubmitActivity() {
       form.append("week", week);
       form.append("dayOfWeek", dayOfWeek);
       form.append("plannedActivity", plannedActivity);
+      form.append("maleAttendees", maleAttendees);
+      form.append("femaleAttendees", femaleAttendees);
       form.append("responsiblePerson", responsiblePerson);
       form.append("targetGroup", targetGroup);
       form.append("expectedOutput", expectedOutput);
@@ -258,6 +262,8 @@ export default function SubmitActivity() {
       showToast("success", "Activity submitted successfully", statusSummary);
 
       setPlannedActivity("");
+      setMaleAttendees("0");
+      setFemaleAttendees("0");
       setTargetGroup("");
       setExpectedOutput("");
       setVisitStatus("Completed");
@@ -405,6 +411,33 @@ export default function SubmitActivity() {
             required
           />
         </label>
+
+        <fieldset>
+          <legend>Attendees</legend>
+          <div className="date-time-row">
+            <label>
+              Male attendees
+              <input
+                type="number"
+                min="0"
+                value={maleAttendees}
+                onChange={(e) => setMaleAttendees(e.target.value)}
+                required
+              />
+            </label>
+            <label>
+              Female attendees
+              <input
+                type="number"
+                min="0"
+                value={femaleAttendees}
+                onChange={(e) => setFemaleAttendees(e.target.value)}
+                required
+              />
+            </label>
+          </div>
+        </fieldset>
+
         <label>
           Responsible Person
           <input

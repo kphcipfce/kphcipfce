@@ -85,17 +85,22 @@ async function seed() {
       role: "grm_focal",
       district: districtIdByName[name],
     });
-    await District.findByIdAndUpdate(districtIdByName[name], { grmFocalMember: focal._id, grmFocalPassword: PASSWORD });
+    await District.findByIdAndUpdate(districtIdByName[name], {
+      grmFocalMember: focal._id,
+      grmFocalPassword: PASSWORD,
+    });
     console.log(`${name} grm_focal: ${email}`);
   }
 
   let facilityCount = 0;
   for (const name of districtNames) {
-    const facilities = (FACILITIES_BY_DISTRICT[name] || []).map(([facilityName, category]) => ({
-      name: facilityName,
-      category,
-      district: districtIdByName[name],
-    }));
+    const facilities = (FACILITIES_BY_DISTRICT[name] || []).map(
+      ([facilityName, category]) => ({
+        name: facilityName,
+        category,
+        district: districtIdByName[name],
+      }),
+    );
     await Facility.insertMany(facilities);
     facilityCount += facilities.length;
   }

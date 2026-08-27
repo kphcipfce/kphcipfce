@@ -63,30 +63,45 @@ export async function monitoring(req, res) {
     { $project: { district: "$district.name", districtId: "$_id", activityCount: 1, verified: 1, flagged: 1 } },
   ]);
 
-  // Gender lives on the submitting Member, not the activity itself — joined in here and
-  // pivoted into one row per gender with a count per activity type, so the chart can render
-  // it directly.
-  const genderTypeCounts = await ActivityRecord.aggregate([
-    { $match: match },
-    { $lookup: { from: "members", localField: "submittedBy", foreignField: "_id", as: "submitter" } },
-    { $unwind: "$submitter" },
-    { $group: { _id: { gender: "$submitter.gender", activityType: "$activityType" }, count: { $sum: 1 } } },
-    { $project: { gender: "$_id.gender", activityType: "$_id.activityType", count: 1, _id: 0 } },
+  // Scoped by district only (team/activityType/status query filters are social-mobilizer-
+  // specific and wouldn't apply consistently across the other two collections' schemas).
+  const districtOnlyMatch = match.district ? { district: match.district } : {};
+
+  // Male/female headcount is entered on the form as the activity's actual audience — not the
+  // submitting member's own gender, and not the per-teammate present/absent AttendanceEntry
+  // data (a separate concept: whether the submitter's own teammates showed up). Combined across
+  // all three panels via $unionWith: a district_viewer/grm_focal's own district-scoped total
+  // includes whatever a social mobilizer, coordinator, or GRM focal person submitted there, and
+  // Super Admin (no district match) gets the global total across every district.
+  const byActivityTypeGender = await ActivityRecord.aggregate([
+    { $match: districtOnlyMatch },
+    { $project: { activityType: 1, maleAttendees: 1, femaleAttendees: 1 } },
+    {
+      $unionWith: {
+        coll: "coordinatoractivityrecords",
+        pipeline: [{ $match: districtOnlyMatch }, { $project: { activityType: 1, maleAttendees: 1, femaleAttendees: 1 } }],
+      },
+    },
+    {
+      $unionWith: {
+        coll: "grmactivityrecords",
+        pipeline: [{ $match: districtOnlyMatch }, { $project: { activityType: 1, maleAttendees: 1, femaleAttendees: 1 } }],
+      },
+    },
+    {
+      $group: {
+        _id: "$activityType",
+        Male: { $sum: { $ifNull: ["$maleAttendees", 0] } },
+        Female: { $sum: { $ifNull: ["$femaleAttendees", 0] } },
+      },
+    },
+    { $project: { activityType: "$_id", Male: 1, Female: 1, _id: 0 } },
   ]);
-  const byGenderActivityTypeMap = new Map();
-  for (const row of genderTypeCounts) {
-    const gender = row.gender ? row.gender[0].toUpperCase() + row.gender.slice(1) : "Unknown";
-    if (!byGenderActivityTypeMap.has(gender)) byGenderActivityTypeMap.set(gender, { gender });
-    byGenderActivityTypeMap.get(gender)[row.activityType] = row.count;
-  }
-  const byGenderActivityType = [...byGenderActivityTypeMap.values()];
 
   // "Attendance rate" is really a verified-vs-total rate spanning all three activity-record
   // collections (social mobilizer, coordinator, GRM focal) — "verified" is the one status value
   // common to all of them, unlike present/absent attendee data, which only social mobilizer
-  // group visits track at all. Scoped by district only (team/activityType/status query filters
-  // are social-mobilizer-specific and wouldn't apply across the other two collections).
-  const districtOnlyMatch = match.district ? { district: match.district } : {};
+  // group visits track at all.
   const [smCounts, coordCounts, grmCounts] = await Promise.all([
     ActivityRecord.aggregate([
       { $match: districtOnlyMatch },
@@ -105,7 +120,7 @@ export async function monitoring(req, res) {
   const totalVerified = (smCounts[0]?.verified || 0) + (coordCounts[0]?.verified || 0) + (grmCounts[0]?.verified || 0);
   const attendanceRate = totalRecords > 0 ? totalVerified / totalRecords : null;
 
-  res.json({ byTeam, byDistrict, byGenderActivityType, attendanceRate });
+  res.json({ byTeam, byDistrict, byActivityTypeGender, attendanceRate });
 }
 
 // FR-4.1/4.2/4.3: per-team and per-member performance stats.

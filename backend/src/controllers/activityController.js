@@ -60,6 +60,8 @@ export async function createActivity(req, res) {
     visitStatus,
     week,
     dayOfWeek,
+    maleAttendees,
+    femaleAttendees,
   } = req.body;
   const teamId = req.user.team;
   const weekNumber = Number(week);
@@ -144,6 +146,8 @@ export async function createActivity(req, res) {
     visitStatus,
     week: weekNumber,
     dayOfWeek,
+    maleAttendees: Number(maleAttendees) || 0,
+    femaleAttendees: Number(femaleAttendees) || 0,
     description,
   });
 

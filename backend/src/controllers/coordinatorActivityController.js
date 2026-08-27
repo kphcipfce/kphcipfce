@@ -60,6 +60,8 @@ export async function createCoordinatorActivity(req, res) {
     visitStatus,
     plan,
     planWeek,
+    maleAttendees,
+    femaleAttendees,
   } = req.body;
   const districtId = req.user.district;
 
@@ -126,6 +128,8 @@ export async function createCoordinatorActivity(req, res) {
     visitStatus,
     plan,
     planWeek,
+    maleAttendees: Number(maleAttendees) || 0,
+    femaleAttendees: Number(femaleAttendees) || 0,
     description,
   });
 

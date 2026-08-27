@@ -10,15 +10,9 @@ import { IoMdDownload } from "react-icons/io";
 import { MdFileDownloadDone } from "react-icons/md";
 import { EyeIcon } from "../components/icons";
 
-// Fixed hue order per activity type — colors identify the type, so they must stay stable
-// regardless of which types happen to have data for the current filter (validated categorical
-// palette, slots 1-3: blue/orange/aqua).
-const ACTIVITY_TYPE_COLORS = {
-  "Community engagement session": "#2a78d6",
-  "Behavioural change and communication campaign": "#eb6834",
-  "Wash and health hygiene in schools": "#1baf7a",
-};
-const ACTIVITY_TYPES = Object.keys(ACTIVITY_TYPE_COLORS);
+// Validated categorical pair for the two fixed attendee-gender series — distinct in both CVD
+// and normal vision (run scripts/validate_palette.js from the dataviz skill to re-check).
+const GENDER_COLORS = { Male: "#2a78d6", Female: "#e87ba4" };
 
 // Colors just the Status cell, never the whole row.
 function statusClassName(a) {
@@ -245,17 +239,22 @@ function MonitoringDashboard() {
             </div>
 
             <div className="chart-col">
+              {/* Male/Female counts come from the attendees section on the submission form
+                  itself (the activity's actual audience), not the submitter's own gender —
+                  combined across Social Mobilizer, Coordinator, and GRM Focal Person panels:
+                  district-scoped for those two roles' own dashboards, global for Super Admin. */}
               <h3>By Activity Type</h3>
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={monitoring.byGenderActivityType} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+                <BarChart data={monitoring.byActivityTypeGender} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="gender" />
+                  {/* Type names are dropped from the axis — a hover tooltip already names each
+                      bar's activity type, so a repeated label underneath is redundant. */}
+                  <XAxis dataKey="activityType" tick={false} />
                   <YAxis allowDecimals={false} width={40} />
                   <Tooltip />
-                  <Legend height={60} iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "0.75rem" }} />
-                  {ACTIVITY_TYPES.map((type) => (
-                    <Bar key={type} dataKey={type} fill={ACTIVITY_TYPE_COLORS[type]} name={type} />
-                  ))}
+                  <Legend height={30} iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "0.75rem" }} />
+                  <Bar dataKey="Male" fill={GENDER_COLORS.Male} name="Male" />
+                  <Bar dataKey="Female" fill={GENDER_COLORS.Female} name="Female" />
                 </BarChart>
               </ResponsiveContainer>
             </div>

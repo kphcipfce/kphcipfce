@@ -32,6 +32,8 @@ export default function MyGrmActivities() {
   const [isRefresher, setIsRefresher] = useState(false);
   const [selectedWeekKey, setSelectedWeekKey] = useState("");
   const [plannedActivity, setPlannedActivity] = useState("");
+  const [maleAttendees, setMaleAttendees] = useState("0");
+  const [femaleAttendees, setFemaleAttendees] = useState("0");
   const [responsiblePerson, setResponsiblePerson] = useState(user.name);
   const [targetGroup, setTargetGroup] = useState("");
   const [expectedOutput, setExpectedOutput] = useState("");
@@ -109,6 +111,8 @@ export default function MyGrmActivities() {
       form.append("plan", selectedWeek.planId);
       form.append("planWeek", selectedWeek.weekId);
       form.append("plannedActivity", plannedActivity);
+      form.append("maleAttendees", maleAttendees);
+      form.append("femaleAttendees", femaleAttendees);
       form.append("responsiblePerson", responsiblePerson);
       form.append("targetGroup", targetGroup);
       form.append("expectedOutput", expectedOutput);
@@ -131,6 +135,8 @@ export default function MyGrmActivities() {
       showToast("success", "Activity submitted", statusSummary);
 
       setPlannedActivity("");
+      setMaleAttendees("0");
+      setFemaleAttendees("0");
       setTargetGroup("");
       setExpectedOutput("");
       setVisitStatus("Completed");
@@ -216,6 +222,21 @@ export default function MyGrmActivities() {
           Planned Activity
           <input value={plannedActivity} onChange={(e) => setPlannedActivity(e.target.value)} required />
         </label>
+
+        <fieldset>
+          <legend>Attendees</legend>
+          <div className="date-time-row">
+            <label>
+              Male attendees
+              <input type="number" min="0" value={maleAttendees} onChange={(e) => setMaleAttendees(e.target.value)} required />
+            </label>
+            <label>
+              Female attendees
+              <input type="number" min="0" value={femaleAttendees} onChange={(e) => setFemaleAttendees(e.target.value)} required />
+            </label>
+          </div>
+        </fieldset>
+
         <label>
           Responsible Person
           <input value={responsiblePerson} onChange={(e) => setResponsiblePerson(e.target.value)} required />

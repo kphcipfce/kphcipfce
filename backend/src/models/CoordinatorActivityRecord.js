@@ -32,6 +32,9 @@ const coordinatorActivityRecordSchema = new mongoose.Schema(
     },
     plan: { type: mongoose.Schema.Types.ObjectId, ref: "CoordinatorPlan", required: true },
     planWeek: { type: mongoose.Schema.Types.ObjectId, required: true }, // matches a weeks[]._id inside `plan`
+    // Headcount of the activity's actual audience, same as ActivityRecord's fields.
+    maleAttendees: { type: Number, default: 0, min: 0 },
+    femaleAttendees: { type: Number, default: 0, min: 0 },
     description: { type: String, trim: true }, // free-text "Remarks / Follow-up" in the UI
     status: { type: String, enum: ["submitted", "verified", "flagged"], default: "submitted" },
     statusReason: { type: String, trim: true },
