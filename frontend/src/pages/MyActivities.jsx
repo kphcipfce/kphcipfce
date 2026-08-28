@@ -227,14 +227,14 @@ export default function MyActivities() {
         </label>
 
         <fieldset>
-          <legend>Attendees</legend>
+          <legend>Participants</legend>
           <div className="date-time-row">
             <label>
-              Male attendees
+              Male participants
               <input type="number" min="0" value={maleAttendees} onChange={(e) => setMaleAttendees(e.target.value)} required />
             </label>
             <label>
-              Female attendees
+              Female participants
               <input type="number" min="0" value={femaleAttendees} onChange={(e) => setFemaleAttendees(e.target.value)} required />
             </label>
           </div>

@@ -6,7 +6,7 @@ import Spinner from "../components/Spinner";
 import { EyeIcon, EyeOffIcon } from "../components/icons";
 import { roleLabel } from "../utils/roleLabel";
 
-const TABS = ["Social Mobilizers", "Teams", "Districts", "Coordinator Plans", "GRM Plans", "Overview", "Audit Log"];
+const TABS = ["Social Mobilizers", "Teams", "Districts", "Mobilizer Plans", "Coordinator Plans", "GRM Plans", "Overview", "Audit Log"];
 
 export default function AdminPanel() {
   const [tab, setTab] = useState(TABS[0]);
@@ -24,6 +24,7 @@ export default function AdminPanel() {
       {tab === "Social Mobilizers" && <MembersTab />}
       {tab === "Teams" && <TeamsTab />}
       {tab === "Districts" && <DistrictsTab />}
+      {tab === "Mobilizer Plans" && <MobilizerPlansTab />}
       {tab === "Coordinator Plans" && <CoordinatorPlansTab />}
       {tab === "GRM Plans" && <GrmPlansTab />}
       {tab === "Overview" && <OverviewTab />}
@@ -563,6 +564,196 @@ const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
 function emptyWeek() {
   return { date: "", dayOfWeek: "" };
+}
+
+function MobilizerPlansTab() {
+  const { showToast } = useToast();
+  const now = new Date();
+  const [plans, setPlans] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [form, setForm] = useState({
+    month: now.getMonth() + 1,
+    year: now.getFullYear(),
+    weeks: [emptyWeek(), emptyWeek(), emptyWeek(), emptyWeek()],
+    teamIds: [],
+  });
+  const [creating, setCreating] = useState(false);
+  const [removingId, setRemovingId] = useState(null);
+
+  function load() {
+    api.get("/mobilizer-plans").then((res) => setPlans(res.data));
+    api.get("/teams").then((res) => setTeams(res.data));
+  }
+  useEffect(load, []);
+
+  function updateWeek(i, field, value) {
+    setForm((f) => ({ ...f, weeks: f.weeks.map((w, idx) => (idx === i ? { ...w, [field]: value } : w)) }));
+  }
+
+  function addWeek() {
+    setForm((f) => ({ ...f, weeks: [...f.weeks, emptyWeek()] }));
+  }
+
+  function removeWeek(i) {
+    setForm((f) => ({ ...f, weeks: f.weeks.filter((_, idx) => idx !== i) }));
+  }
+
+  async function createPlan(e) {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      await api.post("/mobilizer-plans", {
+        month: Number(form.month),
+        year: Number(form.year),
+        weeks: form.weeks,
+        teams: form.teamIds,
+      });
+      setForm({ month: now.getMonth() + 1, year: now.getFullYear(), weeks: [emptyWeek(), emptyWeek(), emptyWeek(), emptyWeek()], teamIds: [] });
+      showToast("success", "Plan created", "Assigned teams can now submit against these weeks.");
+      load();
+    } catch (err) {
+      showToast("error", err.response?.data?.error || "Failed to create plan");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function removePlan(id, label) {
+    if (!confirm(`Delete the ${label} plan? This cannot be undone.`)) return;
+    setRemovingId(id);
+    try {
+      await api.delete(`/mobilizer-plans/${id}`);
+      showToast("success", "Plan removed");
+      load();
+    } catch (err) {
+      showToast("error", err.response?.data?.error || "Failed to delete plan");
+    } finally {
+      setRemovingId(null);
+    }
+  }
+
+  return (
+    <div>
+      <form className="card" onSubmit={createPlan}>
+        <div className="date-time-row">
+          <label>
+            Month
+            <select value={form.month} onChange={(e) => setForm({ ...form, month: e.target.value })}>
+              {MONTH_NAMES.map((m, i) => (
+                <option key={m} value={i + 1}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Year
+            <input type="number" value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })} required />
+          </label>
+        </div>
+
+        <fieldset>
+          <legend>Weeks</legend>
+          {form.weeks.map((w, i) => (
+            <div className="date-time-row" key={i}>
+              <label>
+                Week {i + 1} date
+                <input type="date" value={w.date} onChange={(e) => updateWeek(i, "date", e.target.value)} required />
+              </label>
+              <label>
+                Day
+                <select value={w.dayOfWeek} onChange={(e) => updateWeek(i, "dayOfWeek", e.target.value)} required>
+                  <option value="" disabled>
+                    Select day
+                  </option>
+                  {WEEKDAYS.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {form.weeks.length > 1 && (
+                <button type="button" className="btn-delete-icon" onClick={() => removeWeek(i)} aria-label="Remove week">
+                  <MdCancel />
+                </button>
+              )}
+            </div>
+          ))}
+          <button type="button" onClick={addWeek}>
+            + Add week
+          </button>
+        </fieldset>
+
+        <label>
+          Assign to teams
+          <select
+            multiple
+            value={form.teamIds}
+            onChange={(e) => setForm({ ...form, teamIds: Array.from(e.target.selectedOptions, (o) => o.value) })}
+            required
+          >
+            {teams.map((t) => (
+              <option key={t._id} value={t._id}>
+                {t.name} ({t.district?.name})
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <button type="submit" disabled={creating} className={creating ? "btn-loading" : ""}>
+          <span className="btn-label">Create plan</span>
+          {creating && <span className="btn-spinner" />}
+        </button>
+      </form>
+
+      <div className="table-scroll">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Month/Year</th>
+              <th>Assigned Teams</th>
+              <th>Weeks</th>
+              <th>Created By</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {plans.map((p) => (
+              <tr key={p._id}>
+                <td>
+                  {MONTH_NAMES[p.month - 1]} {p.year}
+                </td>
+                <td>{p.teams.map((t) => t.name).join(" & ")}</td>
+                <td>
+                  {p.weeks.map((w) => (
+                    <div key={w._id}>
+                      Week {w.weekNumber}: {new Date(w.date).toLocaleDateString("en-GB")} ({w.dayOfWeek})
+                    </div>
+                  ))}
+                </td>
+                <td>{p.createdBy?.name}</td>
+                <td>
+                  <button
+                    type="button"
+                    disabled={removingId === p._id}
+                    className={`btn-delete-icon ${removingId === p._id ? "btn-loading" : ""}`}
+                    onClick={() => removePlan(p._id, `${MONTH_NAMES[p.month - 1]} ${p.year}`)}
+                    aria-label={`Remove ${MONTH_NAMES[p.month - 1]} ${p.year} plan`}
+                  >
+                    <span className="btn-label">
+                      <MdCancel />
+                    </span>
+                    {removingId === p._id && <span className="btn-spinner" />}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 }
 
 function CoordinatorPlansTab() {

@@ -6,41 +6,16 @@ import { useToast } from "../context/ToastContext";
 import Spinner from "../components/Spinner";
 import { CameraIcon } from "../components/icons";
 
-// Mirrors backend/src/config/projectCalendar.js's DAYS_BY_ACTIVITY_TYPE — Community
-// engagement and BCC campaigns run Mon-Fri; WASH-in-schools runs Mon-Thu only. Each type is
-// its own independent track (e.g. WASH and Community engagement can both happen the same day).
-const DAYS_BY_ACTIVITY_TYPE = {
-  "Community engagement session": [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-  ],
-  "Behavioural change and communication campaign": [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-  ],
-  "Wash and health hygiene in schools": [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-  ],
-};
-const ACTIVITY_TYPES = Object.keys(DAYS_BY_ACTIVITY_TYPE);
+const ACTIVITY_TYPES = [
+  "Community engagement session",
+  "Behavioural change and communication campaign",
+  "Wash and health hygiene in schools",
+];
 const BCC_TYPE = "Behavioural change and communication campaign";
-// BCC only runs 6 times across the 18-week project — once every 3 weeks — rather than every
-// week like the other two types.
-const BCC_WEEKS = [3, 6, 9, 12, 15, 18];
-const VISIT_STATUSES = [
-  "Pending",
-  "In Progress",
-  "Completed",
-  "Deferred / Rescheduled",
+const VISIT_STATUSES = ["Pending", "In Progress", "Completed", "Deferred / Rescheduled"];
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
 ];
 
 function pad(n) {
@@ -52,8 +27,7 @@ export default function SubmitActivity() {
   const { showToast } = useToast();
   const [teammate, setTeammate] = useState(null);
   const [facilities, setFacilities] = useState(null); // null = still loading
-  const [weeks, setWeeks] = useState([]);
-  const [teamActivities, setTeamActivities] = useState([]); // this team's active activities, used to derive occupancy
+  const [plans, setPlans] = useState(null); // null = still loading, [] = loaded but none assigned
   const [time, setTime] = useState(() => {
     const d = new Date();
     return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -61,8 +35,7 @@ export default function SubmitActivity() {
   const [facility, setFacility] = useState("");
   const [activityType, setActivityType] = useState(ACTIVITY_TYPES[0]);
   const [attendees, setAttendees] = useState([user.id]);
-  const [week, setWeek] = useState("");
-  const [dayOfWeek, setDayOfWeek] = useState("");
+  const [selectedWeekKey, setSelectedWeekKey] = useState("");
   const [plannedActivity, setPlannedActivity] = useState("");
   const [maleAttendees, setMaleAttendees] = useState("0");
   const [femaleAttendees, setFemaleAttendees] = useState("0");
@@ -74,98 +47,36 @@ export default function SubmitActivity() {
   const [photos, setPhotos] = useState([]);
   const [busy, setBusy] = useState(false);
 
-  function loadTeamActivities() {
-    api.get("/activities").then((res) => {
-      setTeamActivities(
-        res.data.filter((a) =>
-          ["submitted", "verified", "flagged"].includes(a.status),
-        ),
-      );
+  // Guards against an in-flight request (e.g. React StrictMode's duplicate mount effect)
+  // resolving after a newer one and clobbering fresher data with stale results.
+  const loadSeq = useRef(0);
+  function loadPlans() {
+    const seq = ++loadSeq.current;
+    api.get("/mobilizer-plans").then((res) => {
+      if (seq === loadSeq.current) setPlans(res.data);
     });
   }
 
   useEffect(() => {
     api.get("/members/my-team").then((res) => setTeammate(res.data.teammate));
     api.get("/facilities").then((res) => setFacilities(res.data));
-    api.get("/schedule/weeks").then((res) => setWeeks(res.data));
-    loadTeamActivities();
+    loadPlans();
   }, []);
 
-  // A day is occupied for ME specifically if I'm recorded as an attendee on an existing
-  // activity for that exact (week, day, activity type) — a teammate who wasn't there can
-  // still submit their own separate one for that same day/type, and a different activity
-  // type on the same day doesn't conflict at all (WASH and Community engagement can coexist).
-  const occupied = useMemo(() => {
-    const keys = new Set();
-    for (const a of teamActivities) {
-      if ((a.attendeeIds || []).map(String).includes(user.id)) {
-        keys.add(`${a.week}-${a.dayOfWeek}-${a.activityType}`);
-      }
-    }
-    return keys;
-  }, [teamActivities, user.id]);
-
-  // BCC is one session per 3-weekly slot, not a daily-repeatable activity — once any day of
-  // that week has been submitted (for the group, so it applies to both teammates equally),
-  // the whole week is done, not just that specific day.
-  const bccWeeksDone = useMemo(() => {
-    const done = new Set();
-    for (const a of teamActivities) {
-      if (
-        a.activityType === BCC_TYPE &&
-        (a.attendeeIds || []).map(String).includes(user.id)
-      ) {
-        done.add(a.week);
-      }
-    }
-    return done;
-  }, [teamActivities, user.id]);
-
-  const weekOptions = useMemo(() => {
-    if (activityType !== BCC_TYPE)
-      return weeks.map((w) => ({
-        ...w,
-        label: `Week ${w.weekNumber} (${new Date(w.monday).toLocaleDateString("en-GB")})`,
-        done: false,
-      }));
-    return weeks
-      .filter((w) => BCC_WEEKS.includes(w.weekNumber))
-      .map((w) => {
-        const done = bccWeeksDone.has(w.weekNumber);
-        return {
-          ...w,
-          done,
-          label: `Session ${BCC_WEEKS.indexOf(w.weekNumber) + 1} of ${BCC_WEEKS.length} — Week ${w.weekNumber} (${new Date(w.monday).toLocaleDateString("en-GB")})${done ? " — completed" : ""}`,
-        };
-      });
-  }, [weeks, activityType, bccWeeksDone]);
-
-  const dayOptions = useMemo(() => {
-    const allDays = DAYS_BY_ACTIVITY_TYPE[activityType] || [];
-    if (!week) return allDays.map((d) => ({ day: d, taken: false }));
-    return allDays.map((d) => ({
-      day: d,
-      taken: occupied.has(`${week}-${d}-${activityType}`),
-    }));
-  }, [activityType, week, occupied]);
-
-  // Switching activity type can invalidate the currently picked week (BCC only offers 6 of
-  // the 18 weeks) or day (e.g. Friday isn't offered for WASH, or the day just became
-  // occupied) — clear them rather than submit a stale selection.
-  useEffect(() => {
-    if (
-      week &&
-      !weekOptions.some((w) => String(w.weekNumber) === String(week) && !w.done)
-    ) {
-      setWeek("");
-    }
-  }, [weekOptions]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (dayOfWeek && !dayOptions.some((o) => o.day === dayOfWeek && !o.taken)) {
-      setDayOfWeek("");
-    }
-  }, [dayOptions]); // eslint-disable-line react-hooks/exhaustive-deps
+  const weekOptions = useMemo(
+    () =>
+      (plans || []).flatMap((plan) =>
+        plan.weeks.map((w) => ({
+          key: `${plan._id}:${w._id}`,
+          planId: plan._id,
+          weekId: w._id,
+          date: w.date,
+          label: `${MONTH_NAMES[plan.month - 1]} ${plan.year} — Week ${w.weekNumber} (${new Date(w.date).toLocaleDateString("en-GB")}) — ${w.dayOfWeek}`,
+        })),
+      ),
+    [plans],
+  );
+  const selectedWeek = weekOptions.find((w) => w.key === selectedWeekKey);
 
   // BCC is a group activity — both teammates always attend together, so the checklist locks
   // to everyone rather than letting one be excluded. Whatever was picked before switching to
@@ -184,9 +95,7 @@ export default function SubmitActivity() {
 
   function toggleAttendee(id) {
     if (activityType === BCC_TYPE) return;
-    setAttendees((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
+    setAttendees((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
   function addPhotos(e) {
@@ -203,10 +112,8 @@ export default function SubmitActivity() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!week || !dayOfWeek)
-      return showToast("error", "Select which week and day you're fulfilling.");
-    if (photos.length === 0)
-      return showToast("error", "At least one photo is required.");
+    if (!selectedWeek) return showToast("error", "Select which planned week you're fulfilling.");
+    if (photos.length === 0) return showToast("error", "At least one photo is required.");
     setBusy(true);
 
     try {
@@ -217,9 +124,7 @@ export default function SubmitActivity() {
           (err) => {
             // PERMISSION_DENIED=1, POSITION_UNAVAILABLE=2, TIMEOUT=3 — logged so a failure
             // is diagnosable instead of silently missing GPS with no clue why.
-            console.warn(
-              `Geolocation failed (code ${err.code}): ${err.message}`,
-            );
+            console.warn(`Geolocation failed (code ${err.code}): ${err.message}`);
             resolve(null);
           },
           { timeout: 15000, maximumAge: 60000, enableHighAccuracy: true },
@@ -230,8 +135,8 @@ export default function SubmitActivity() {
       form.append("time", time);
       form.append("activityType", activityType);
       form.append("facility", facility);
-      form.append("week", week);
-      form.append("dayOfWeek", dayOfWeek);
+      form.append("plan", selectedWeek.planId);
+      form.append("planWeek", selectedWeek.weekId);
       form.append("plannedActivity", plannedActivity);
       form.append("maleAttendees", maleAttendees);
       form.append("femaleAttendees", femaleAttendees);
@@ -252,14 +157,10 @@ export default function SubmitActivity() {
       });
       const { activity, flags } = res.data;
       let statusSummary = `Status: ${activity.status}.`;
-      if (flags.anyDuplicate)
-        statusSummary += " Duplicate image flagged for review.";
-      if (flags.anyLocationUnverified)
-        statusSummary += " Location not verified.";
-      if (flags.anyCaptureDateMismatch)
-        statusSummary +=
-          " Photo's capture date doesn't match today, flagged for review.";
-      showToast("success", "Activity submitted successfully", statusSummary);
+      if (flags.anyDuplicate) statusSummary += " Duplicate image flagged for review.";
+      if (flags.anyLocationUnverified) statusSummary += " Location not verified.";
+      if (flags.anyCaptureDateMismatch) statusSummary += " Photo's capture date doesn't match today, flagged for review.";
+      showToast("success", "Activity submitted", statusSummary);
 
       setPlannedActivity("");
       setMaleAttendees("0");
@@ -269,10 +170,10 @@ export default function SubmitActivity() {
       setVisitStatus("Completed");
       setDescription("");
       setPhotos([]);
-      setDayOfWeek("");
-      // The day just submitted is now occupied — refetch so it drops out of the picker
+      setSelectedWeekKey("");
+      // The week just submitted is now occupied — refetch so it drops out of the picker
       // immediately instead of only after a manual page reload.
-      loadTeamActivities();
+      loadPlans();
       e.target.reset();
     } catch (err) {
       showToast("error", err.response?.data?.error || "Submission failed");
@@ -281,7 +182,7 @@ export default function SubmitActivity() {
     }
   }
 
-  if (facilities === null)
+  if (facilities === null || plans === null)
     return (
       <div className="page">
         <Spinner />
@@ -300,17 +201,25 @@ export default function SubmitActivity() {
     );
   }
 
+  if (weekOptions.length === 0) {
+    return (
+      <div className="page">
+        <div className="empty-state">
+          <IoDocumentTextOutline />
+          <p>Your team has no plan assigned yet.</p>
+          <p>Contact your Super Admin.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page">
       <h1>Submit Activity</h1>
       <form className="card" onSubmit={handleSubmit}>
         <label>
           Health Facility / Community
-          <select
-            value={facility}
-            onChange={(e) => setFacility(e.target.value)}
-            required
-          >
+          <select value={facility} onChange={(e) => setFacility(e.target.value)} required>
             <option value="">Select a facility</option>
             {facilities.map((f) => (
               <option key={f._id} value={f._id}>
@@ -322,10 +231,7 @@ export default function SubmitActivity() {
 
         <label>
           Activity type
-          <select
-            value={activityType}
-            onChange={(e) => setActivityType(e.target.value)}
-          >
+          <select value={activityType} onChange={(e) => setActivityType(e.target.value)}>
             {ACTIVITY_TYPES.map((t) => (
               <option key={t}>{t}</option>
             ))}
@@ -341,11 +247,7 @@ export default function SubmitActivity() {
             <label className="checkbox-row">
               <input
                 type="checkbox"
-                checked={
-                  activityType === BCC_TYPE
-                    ? true
-                    : attendees.includes(teammate._id)
-                }
+                checked={activityType === BCC_TYPE ? true : attendees.includes(teammate._id)}
                 disabled={activityType === BCC_TYPE}
                 onChange={() => toggleAttendee(teammate._id)}
               />
@@ -354,120 +256,58 @@ export default function SubmitActivity() {
           )}
         </fieldset>
 
-        <div className="date-time-row">
-          <label>
-            Week
-            <select
-              value={week}
-              onChange={(e) => setWeek(e.target.value)}
-              required
-            >
-              <option value="">Select a week</option>
-              {weekOptions.map((w) => (
-                <option
-                  key={w.weekNumber}
-                  value={w.weekNumber}
-                  disabled={w.done}
-                >
-                  {w.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Day
-            <select
-              value={dayOfWeek}
-              onChange={(e) => setDayOfWeek(e.target.value)}
-              required
-              disabled={!week}
-            >
-              <option value="">Select a day</option>
-              {dayOptions.map(({ day, taken }) => (
-                <option key={day} value={day} disabled={taken}>
-                  {day}
-                  {taken ? " — already submitted" : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+        <label>
+          Planned week
+          <select value={selectedWeekKey} onChange={(e) => setSelectedWeekKey(e.target.value)} required>
+            <option value="">Select a planned week</option>
+            {weekOptions.map((w) => (
+              <option key={w.key} value={w.key}>
+                {w.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        {selectedWeek && <p>Planned: {new Date(selectedWeek.date).toLocaleDateString()}</p>}
 
         <label>
           Time
-          <input
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            required
-          />
+          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
         </label>
 
         <label>
           Planned Activity
-          <input
-            value={plannedActivity}
-            onChange={(e) => setPlannedActivity(e.target.value)}
-            required
-          />
+          <input value={plannedActivity} onChange={(e) => setPlannedActivity(e.target.value)} required />
         </label>
 
         <fieldset>
-          <legend>Attendees</legend>
+          <legend>Participants</legend>
           <div className="date-time-row">
             <label>
-              Male attendees
-              <input
-                type="number"
-                min="0"
-                value={maleAttendees}
-                onChange={(e) => setMaleAttendees(e.target.value)}
-                required
-              />
+              Male participants
+              <input type="number" min="0" value={maleAttendees} onChange={(e) => setMaleAttendees(e.target.value)} required />
             </label>
             <label>
-              Female attendees
-              <input
-                type="number"
-                min="0"
-                value={femaleAttendees}
-                onChange={(e) => setFemaleAttendees(e.target.value)}
-                required
-              />
+              Female participants
+              <input type="number" min="0" value={femaleAttendees} onChange={(e) => setFemaleAttendees(e.target.value)} required />
             </label>
           </div>
         </fieldset>
 
         <label>
           Responsible Person
-          <input
-            value={responsiblePerson}
-            onChange={(e) => setResponsiblePerson(e.target.value)}
-            required
-          />
+          <input value={responsiblePerson} onChange={(e) => setResponsiblePerson(e.target.value)} required />
         </label>
         <label>
           Target Group
-          <input
-            value={targetGroup}
-            onChange={(e) => setTargetGroup(e.target.value)}
-            required
-          />
+          <input value={targetGroup} onChange={(e) => setTargetGroup(e.target.value)} required />
         </label>
         <label>
           Expected Output
-          <input
-            value={expectedOutput}
-            onChange={(e) => setExpectedOutput(e.target.value)}
-            required
-          />
+          <input value={expectedOutput} onChange={(e) => setExpectedOutput(e.target.value)} required />
         </label>
         <label>
           Status
-          <select
-            value={visitStatus}
-            onChange={(e) => setVisitStatus(e.target.value)}
-          >
+          <select value={visitStatus} onChange={(e) => setVisitStatus(e.target.value)}>
             {VISIT_STATUSES.map((s) => (
               <option key={s}>{s}</option>
             ))}
@@ -475,11 +315,7 @@ export default function SubmitActivity() {
         </label>
         <label>
           Remarks / Follow-up (optional)
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-          />
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
         </label>
 
         <div>
@@ -488,21 +324,11 @@ export default function SubmitActivity() {
             <label className="file-btn">
               <CameraIcon />
               Capture
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={addPhotos}
-              />
+              <input type="file" accept="image/*" capture="environment" onChange={addPhotos} />
             </label>
             <label className="file-btn file-btn-secondary">
               Upload Photo
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={addPhotos}
-              />
+              <input type="file" accept="image/*" multiple onChange={addPhotos} />
             </label>
           </div>
           {photos.length > 0 && (
@@ -510,11 +336,7 @@ export default function SubmitActivity() {
               {photos.map((file, i) => (
                 <li key={i}>
                   <span>{file.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => removePhoto(i)}
-                    aria-label="Remove photo"
-                  >
+                  <button type="button" onClick={() => removePhoto(i)} aria-label="Remove photo">
                     ×
                   </button>
                 </li>
@@ -523,11 +345,7 @@ export default function SubmitActivity() {
           )}
         </div>
 
-        <button
-          type="submit"
-          disabled={busy}
-          className={busy ? "btn-loading" : ""}
-        >
+        <button type="submit" disabled={busy} className={busy ? "btn-loading" : ""}>
           <span className="btn-label">Submit</span>
           {busy && <span className="btn-spinner" />}
         </button>

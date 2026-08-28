@@ -59,7 +59,6 @@ export default function ActivityDetail({ activityId, onClose, onStatusChanged, c
   const statusLabel = activity.status === "verified" && attendance.length > 0 && anyAbsent ? "absent" : activity.status;
 
   const details = [
-    ["Planned week", `Week ${activity.week} — ${activity.dayOfWeek}`],
     ["Health Facility / Community", activity.facility ? `${activity.facility.name} (${activity.facility.category})` : ""],
     ["Planned Activity", activity.plannedActivity],
     ["Responsible Person", activity.responsiblePerson],

@@ -226,6 +226,7 @@ export async function exportFieldTracker(req, res) {
   const activities = await ActivityRecord.find(match)
     .populate("district", "name")
     .populate("facility", "name")
+    .populate("plan", "weeks")
     .sort("-dateTime")
     .lean();
 
@@ -240,6 +241,7 @@ export async function exportFieldTracker(req, res) {
   sheet.columns = [
     { header: "Date", key: "date", width: 12 },
     { header: "Week", key: "week", width: 8 },
+    { header: "Day", key: "day", width: 12 },
     { header: "District", key: "district", width: 14 },
     { header: "Health Facility / Community", key: "healthFacility", width: 28 },
     { header: "Planned Activity", key: "plannedActivity", width: 28 },
@@ -254,7 +256,7 @@ export async function exportFieldTracker(req, res) {
     cell.font = { bold: true };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC6D9B8" } };
   });
-  sheet.autoFilter = { from: "A1", to: "K1" };
+  sheet.autoFilter = { from: "A1", to: "L1" };
 
   for (const a of activities) {
     // Same rule as the dashboard's statusClassName: flagged always shown; a verified record
@@ -265,9 +267,12 @@ export async function exportFieldTracker(req, res) {
     else if (a.status === "verified" && allPresent === true) approval = "verified";
     else if (a.status === "verified" && allPresent === false) approval = "absent";
 
+    const weekEntry = a.plan?.weeks?.find((w) => String(w._id) === String(a.planWeek));
+
     const row = sheet.addRow({
       date: new Date(a.dateTime).toLocaleDateString("en-US"),
-      week: a.week,
+      week: weekEntry?.weekNumber ?? "",
+      day: weekEntry?.dayOfWeek ?? "",
       district: a.district?.name || "",
       healthFacility: a.facility?.name || "",
       plannedActivity: a.plannedActivity,

@@ -4,11 +4,11 @@ import exifr from "exifr";
 import ActivityRecord from "../models/ActivityRecord.js";
 import Facility from "../models/Facility.js";
 import Team from "../models/Team.js";
+import SocialMobilizerPlan from "../models/SocialMobilizerPlan.js";
 import AttendanceEntry from "../models/AttendanceEntry.js";
 import ImageMetadata from "../models/ImageMetadata.js";
 import { logAction } from "../middleware/audit.js";
 import cloudinary from "../config/cloudinary.js";
-import { dateForSlot, isValidSlot, BCC_TYPE } from "../config/projectCalendar.js";
 
 function checksumBuffer(buf) {
   return crypto.createHash("sha256").update(buf).digest("hex");
@@ -58,13 +58,12 @@ export async function createActivity(req, res) {
     targetGroup,
     expectedOutput,
     visitStatus,
-    week,
-    dayOfWeek,
+    plan,
+    planWeek,
     maleAttendees,
     femaleAttendees,
   } = req.body;
   const teamId = req.user.team;
-  const weekNumber = Number(week);
 
   if (!teamId) return res.status(400).json({ error: "You must belong to a team to submit an activity" });
   if (
@@ -74,10 +73,10 @@ export async function createActivity(req, res) {
     !responsiblePerson ||
     !targetGroup ||
     !expectedOutput ||
-    !week ||
-    !dayOfWeek
+    !plan ||
+    !planWeek
   ) {
-    return res.status(400).json({ error: "activityType, facility, week, day, and all report fields are required" });
+    return res.status(400).json({ error: "activityType, facility, plan/week, and all report fields are required" });
   }
   if (!req.files || req.files.length === 0) return res.status(400).json({ error: "At least one photo required" });
 
@@ -95,42 +94,35 @@ export async function createActivity(req, res) {
     return res.status(403).json({ error: "This facility is not in your team's district" });
   }
 
-  // The fixed calendar decides which days are even offered for a given activity type (5 for
-  // the first two, 4 for WASH-in-schools) — checked here too, never trusting the client.
-  if (!isValidSlot(activityType, weekNumber, dayOfWeek)) {
-    return res.status(400).json({ error: "Invalid week/day for this activity type" });
+  // Defense in depth: verify the referenced plan/week is real and actually assigned to this
+  // member's team, rather than trusting whatever IDs the client happens to send.
+  const planDoc = await SocialMobilizerPlan.findById(plan);
+  if (!planDoc) return res.status(400).json({ error: "Plan not found" });
+  if (!planDoc.teams.some((t) => String(t) === String(teamId))) {
+    return res.status(403).json({ error: "This plan is not assigned to your team" });
   }
+  const weekEntry = planDoc.weeks.id(planWeek);
+  if (!weekEntry) return res.status(400).json({ error: "Invalid week for this plan" });
 
   const attendees = Array.isArray(attendeeIds) ? attendeeIds : attendeeIds ? [attendeeIds] : [req.user._id];
 
-  // Each activity type is its own independent track — a WASH session and a Community
-  // engagement session can both happen on the same day, they don't block each other. What's
-  // occupied is per attendee, not per team: a teammate who wasn't present for a given
-  // slot can still submit their own separate one for it, but nobody can log the same slot
-  // twice for themselves. BCC is a single one-time session per its 3-weekly slot (whichever
-  // day it lands on), not a daily-repeatable one — so the whole week is checked for it,
-  // rather than just the exact day, or the same session could be logged on two different days.
-  const sameSlotQuery = {
+  // Mirrors the dropdown filtering in listSocialMobilizerPlans: a week that's already
+  // submitted, verified, or flagged is occupied for the whole team (not just the specific
+  // attendees), same as Coordinator/GRM plan weeks — this blocks a stale/still-open form from
+  // double-using it, regardless of which teammate submits or which activity type is picked.
+  const alreadyOccupied = await ActivityRecord.exists({
     team: teamId,
-    week: weekNumber,
-    activityType,
+    planWeek,
     status: { $in: ["submitted", "verified", "flagged"] },
-  };
-  if (activityType !== BCC_TYPE) sameSlotQuery.dayOfWeek = dayOfWeek;
-  const sameSlotActivityIds = await ActivityRecord.find(sameSlotQuery).distinct("_id");
-  if (sameSlotActivityIds.length) {
-    const alreadyAttended = await AttendanceEntry.exists({
-      activityRecord: { $in: sameSlotActivityIds },
-      member: { $in: attendees },
-    });
-    if (alreadyAttended) {
-      const scope = activityType === BCC_TYPE ? "this week's session" : "this day";
-      return res.status(409).json({ error: `One of the selected attendees already has ${scope} submitted for this activity type` });
-    }
-  }
+  });
+  if (alreadyOccupied) return res.status(409).json({ error: "This week already has an activity submitted for it" });
 
   const submittedAt = new Date();
-  const dateTime = dateForSlot(weekNumber, dayOfWeek, time);
+  const dateTime = new Date(weekEntry.date);
+  if (time) {
+    const [hours, minutes] = time.split(":").map(Number);
+    dateTime.setHours(hours || 0, minutes || 0, 0, 0);
+  }
 
   const activity = await ActivityRecord.create({
     team: teamId,
@@ -144,8 +136,8 @@ export async function createActivity(req, res) {
     targetGroup,
     expectedOutput,
     visitStatus,
-    week: weekNumber,
-    dayOfWeek,
+    plan,
+    planWeek,
     maleAttendees: Number(maleAttendees) || 0,
     femaleAttendees: Number(femaleAttendees) || 0,
     description,
@@ -228,8 +220,6 @@ export async function listActivities(req, res) {
 
   // One flag per activity so the list view can color a verified row by attendance
   // without a per-row detail fetch: true = everyone present, false = someone marked absent.
-  // attendeeIds rides along too — the Submit Activity picker uses it to work out which
-  // weeks/days are already used up for the logged-in member specifically, not the whole team.
   const summary = await AttendanceEntry.aggregate([
     { $match: { activityRecord: { $in: activities.map((a) => a._id) } } },
     { $group: { _id: "$activityRecord", anyAbsent: { $sum: { $cond: ["$present", 0, 1] } }, attendeeIds: { $push: "$member" } } },

@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { TOTAL_WEEKS } from "../config/projectCalendar.js";
 
 const editLogEntry = new mongoose.Schema(
   {
@@ -27,10 +26,11 @@ const activityRecordSchema = new mongoose.Schema(
       enum: ["Pending", "In Progress", "Completed", "Deferred / Rescheduled"],
       default: "Completed",
     },
-    // Fixed 18-week project calendar (see config/projectCalendar.js) — every team shares the
-    // same week numbering, so this is a plain number/day pair rather than a plan reference.
-    week: { type: Number, required: true, min: 1, max: TOTAL_WEEKS },
-    dayOfWeek: { type: String, enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], required: true },
+    // Admin-assigned plan (like CoordinatorPlan/GrmPlan) replaces the old fixed 18-week
+    // calendar — weekNumber/date/dayOfWeek are resolved by populating `plan` and matching
+    // its weeks[]._id, not stored redundantly here.
+    plan: { type: mongoose.Schema.Types.ObjectId, ref: "SocialMobilizerPlan", required: true },
+    planWeek: { type: mongoose.Schema.Types.ObjectId, required: true },
     // Headcount of the activity's actual audience — distinct from AttendanceEntry, which tracks
     // whether the submitter's own teammates were present, not who showed up to the session.
     maleAttendees: { type: Number, default: 0, min: 0 },
