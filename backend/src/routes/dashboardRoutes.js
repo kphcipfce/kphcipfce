@@ -3,6 +3,7 @@ import {
   monitoring,
   adminStats,
   superAdminOverview,
+  executiveOverview,
   exportFieldTracker,
   exportCoordinatorTracker,
   exportGrmTracker,
@@ -15,7 +16,8 @@ router.use(requireAuth);
 router.get("/monitoring", requireRole("super_admin", "district_viewer", "grm_focal"), asyncHandler(monitoring));
 router.get("/admin", requireRole("super_admin"), asyncHandler(adminStats));
 router.get("/super-admin", requireRole("super_admin"), asyncHandler(superAdminOverview));
-router.get("/export.xlsx", requireRole("super_admin"), asyncHandler(exportFieldTracker));
+router.get("/executive", requireRole("executive"), asyncHandler(executiveOverview));
+router.get("/export.xlsx", requireRole("super_admin", "executive"), asyncHandler(exportFieldTracker));
 router.get("/export-coordinator.xlsx", requireRole("super_admin"), asyncHandler(exportCoordinatorTracker));
 router.get("/export-grm.xlsx", requireRole("super_admin"), asyncHandler(exportGrmTracker));
 

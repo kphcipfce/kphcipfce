@@ -5,6 +5,7 @@ const ROLE_LABELS = {
   district_viewer: "District Coordinator",
   grm_focal: "GRM Focal Person",
   super_admin: "Super Admin",
+  executive: "Executive Official",
 };
 
 export function roleLabel(role) {

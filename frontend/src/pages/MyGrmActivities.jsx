@@ -4,6 +4,7 @@ import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import Spinner from "../components/Spinner";
+import SubmissionSuccess from "../components/SubmissionSuccess";
 import { CameraIcon } from "../components/icons";
 
 // Only one activity type exists for GRM Focal Persons, unlike the District Coordinator's two —
@@ -41,6 +42,7 @@ export default function MyGrmActivities() {
   const [description, setDescription] = useState("");
   const [photos, setPhotos] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [justSubmitted, setJustSubmitted] = useState(false);
 
   // Guards against an in-flight request (e.g. React StrictMode's duplicate mount effect)
   // resolving after a newer one and clobbering fresher data with stale results.
@@ -124,15 +126,10 @@ export default function MyGrmActivities() {
       }
       photos.forEach((file) => form.append("photos", file));
 
-      const res = await api.post("/grm-activities", form, {
+      await api.post("/grm-activities", form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      const { activity, flags } = res.data;
-      let statusSummary = `Status: ${activity.status}.`;
-      if (flags.anyDuplicate) statusSummary += " Duplicate image flagged for review.";
-      if (flags.anyLocationUnverified) statusSummary += " Location not verified.";
-      if (flags.anyCaptureDateMismatch) statusSummary += " Photo's capture date doesn't match today, flagged for review.";
-      showToast("success", "Activity submitted", statusSummary);
+      setJustSubmitted(true);
 
       setPlannedActivity("");
       setMaleAttendees("0");
@@ -153,6 +150,18 @@ export default function MyGrmActivities() {
     } finally {
       setBusy(false);
     }
+  }
+
+  // Checked first, ahead of the empty-state guards below: submitting the last available week
+  // makes it refetch to empty, and that "no plan assigned" state must never outrun the success
+  // screen for the submission that just happened.
+  if (justSubmitted) {
+    return (
+      <div className="page">
+        <h1>My Activities</h1>
+        <SubmissionSuccess onReturn={() => setJustSubmitted(false)} />
+      </div>
+    );
   }
 
   if (facilities === null || plans === null)
@@ -178,6 +187,7 @@ export default function MyGrmActivities() {
     <div className="page">
       <h1>My Activities</h1>
       <form className="card" onSubmit={handleSubmit}>
+        <fieldset disabled={busy} className="form-disable-wrap">
         <label>
           Health Facility / Community
           <select value={facility} onChange={(e) => setFacility(e.target.value)} required>
@@ -288,6 +298,7 @@ export default function MyGrmActivities() {
             </ul>
           )}
         </div>
+        </fieldset>
 
         <button type="submit" disabled={busy} className={busy ? "btn-loading" : ""}>
           <span className="btn-label">Submit</span>

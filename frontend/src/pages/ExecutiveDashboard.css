@@ -1,0 +1,530 @@
+/* Executive Dashboard — hand-written CSS translation of the design Ammar provided (originally
+   built with Tailwind utility classes). Scoped to this page only, imported nowhere else, so it
+   can't affect any other page's styling. */
+
+.exec-page {
+  min-height: 100vh;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.exec-shell {
+  padding: 1.5rem;
+  max-width: 1500px;
+  margin: 0 auto;
+}
+@media (min-width: 1024px) {
+  .exec-shell {
+    padding: 2rem;
+  }
+}
+
+.exec-shell > * + * {
+  margin-top: 1.5rem;
+}
+
+.exec-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.exec-eyebrow {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: #059669;
+  margin: 0 0 0.5rem;
+}
+
+.exec-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin: 0;
+}
+@media (min-width: 1024px) {
+  .exec-title {
+    font-size: 2.25rem;
+  }
+}
+
+.exec-subtitle {
+  color: #64748b;
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+}
+
+.exec-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.exec-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+  background: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.exec-btn:hover {
+  color: #059669;
+  border-color: #a7f3d0;
+}
+
+.exec-btn-primary {
+  border: none;
+  background: #059669;
+  color: white;
+}
+.exec-btn-primary:hover {
+  background: #047857;
+  color: white;
+}
+.exec-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.exec-error {
+  border-radius: 1rem;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 0.875rem;
+  padding: 1rem 1.25rem;
+}
+
+/* Panel */
+.exec-panel {
+  /* Grid items default to min-width: auto, which lets a wide child (the Needs Attention
+     table) force this panel — and the whole grid row it shares with other panels — wider
+     than the viewport instead of scrolling internally. min-width: 0 lets it shrink to its
+     column so .exec-table-wrap's overflow-x actually takes effect. */
+  min-width: 0;
+  background: white;
+  border: 1px solid #f1f5f9;
+  border-radius: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  padding: 1.5rem;
+}
+
+.exec-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.exec-panel-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.exec-panel-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.exec-panel-title {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.exec-panel-subtitle {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0.125rem 0 0;
+}
+
+.exec-panel-action {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #94a3b8;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.exec-panel-action:hover {
+  color: #059669;
+}
+
+/* Filters grid */
+.exec-filter-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+  .exec-filter-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 1024px) {
+  .exec-filter-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.exec-field label {
+  display: block;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  margin-bottom: 0.25rem;
+}
+
+.exec-field select,
+.exec-field input {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+  padding: 0.6rem 1rem;
+  font-size: 0.875rem;
+  background: white;
+}
+.exec-field select:focus,
+.exec-field input:focus {
+  outline: none;
+  border-color: #6ee7b7;
+  box-shadow: 0 0 0 3px rgba(167, 243, 208, 0.4);
+}
+
+/* KPI grid */
+.exec-kpi-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, 1fr);
+}
+@media (min-width: 640px) {
+  .exec-kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (min-width: 1400px) {
+  .exec-kpi-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+.exec-kpi {
+  background: white;
+  border: 1px solid #f1f5f9;
+  border-radius: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  padding: 1.5rem;
+  transition: transform 0.2s;
+}
+.exec-kpi:hover {
+  transform: translateY(-2px);
+}
+
+.exec-kpi-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+.exec-kpi-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.exec-tone-emerald {
+  background: #ecfdf5;
+  color: #059669;
+}
+.exec-tone-navy {
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+.exec-tone-amber {
+  background: #fffbeb;
+  color: #d97706;
+}
+.exec-tone-red {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.exec-kpi-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  margin: 0 0 0.25rem;
+}
+
+.exec-kpi-value {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1;
+  margin: 0;
+}
+
+.exec-kpi-hint {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0.5rem 0 0;
+}
+
+/* Generic grids */
+.exec-grid-3 {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 1280px) {
+  .exec-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .exec-grid-3 > .exec-span-2 {
+    grid-column: span 2;
+  }
+}
+
+.exec-chart-box {
+  height: 16rem;
+}
+.exec-chart-box-tall {
+  height: 18rem;
+}
+
+.exec-empty {
+  height: 13rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  color: #94a3b8;
+  border: 1px dashed #e2e8f0;
+  border-radius: 1rem;
+}
+
+/* Visit progress bars */
+.exec-progress-row + .exec-progress-row {
+  margin-top: 0.75rem;
+}
+.exec-progress-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.875rem;
+}
+.exec-progress-label span:first-child {
+  font-weight: 600;
+  color: #334155;
+}
+.exec-progress-label span:last-child {
+  color: #94a3b8;
+}
+.exec-progress-track {
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  margin-top: 0.375rem;
+  overflow: hidden;
+}
+.exec-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: #1e3a8a;
+}
+
+/* Tables */
+.exec-table-wrap {
+  overflow-x: auto;
+}
+.exec-table {
+  width: 100%;
+  font-size: 0.875rem;
+  border-collapse: collapse;
+}
+.exec-table thead tr {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  border-bottom: 1px solid #f1f5f9;
+}
+.exec-table th {
+  padding: 0.5rem 0.5rem 0.5rem 0;
+  font-weight: 700;
+  text-align: left;
+}
+.exec-table th.exec-num {
+  text-align: right;
+}
+.exec-table td {
+  padding: 0.625rem 0.5rem 0.625rem 0;
+  border-bottom: 1px solid #f8fafc;
+  vertical-align: top;
+}
+.exec-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.exec-table td.exec-num {
+  text-align: right;
+}
+.exec-td-strong {
+  font-weight: 600;
+  color: #334155;
+}
+.exec-td-muted {
+  color: #64748b;
+}
+.exec-td-emerald {
+  color: #059669;
+  font-weight: 600;
+}
+.exec-td-red {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.exec-link-btn {
+  background: none;
+  border: none;
+  color: #059669;
+  font-weight: 700;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0;
+}
+.exec-link-btn:hover {
+  color: #047857;
+}
+
+/* Team leaderboard */
+.exec-leaderboard {
+  max-height: 18rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+.exec-leaderboard-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.exec-leaderboard-row + .exec-leaderboard-row {
+  margin-top: 0.75rem;
+}
+.exec-leaderboard-main {
+  flex: 1;
+  min-width: 0;
+}
+.exec-leaderboard-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.exec-leaderboard-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.exec-leaderboard-count {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+.exec-leaderboard-track {
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  margin-top: 0.375rem;
+  overflow: hidden;
+}
+.exec-leaderboard-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: #10b981;
+}
+.exec-flag-badge {
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  white-space: nowrap;
+}
+.exec-flag-high {
+  background: #fef2f2;
+  color: #dc2626;
+}
+.exec-flag-some {
+  background: #fffbeb;
+  color: #d97706;
+}
+.exec-flag-none {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+/* Evidence rows */
+.exec-evidence-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 1rem;
+  background: rgba(248, 250, 252, 0.7);
+}
+.exec-evidence-row + .exec-evidence-row {
+  margin-top: 0.75rem;
+}
+.exec-evidence-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+  background: white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.exec-evidence-label {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+}
+.exec-evidence-count {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0f172a;
+}

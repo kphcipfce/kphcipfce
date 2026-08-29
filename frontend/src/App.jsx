@@ -10,6 +10,7 @@ import MyActivities from "./pages/MyActivities";
 import MyGrmActivities from "./pages/MyGrmActivities";
 import Dashboard from "./pages/Dashboard";
 import AdminPanel from "./pages/AdminPanel";
+import ExecutiveDashboard from "./pages/ExecutiveDashboard";
 import "./index.css";
 
 // Every role lands on its own activities/submission page first, not the Dashboard — matches
@@ -18,6 +19,7 @@ const LANDING_ROUTE_BY_ROLE = {
   member: "/submit",
   district_viewer: "/my-activities",
   grm_focal: "/my-grm-activities",
+  executive: "/executive",
 };
 
 function Home() {
@@ -80,6 +82,14 @@ export default function App() {
               element={
                 <ProtectedRoute roles={["super_admin"]}>
                   <AdminPanel />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/executive"
+              element={
+                <ProtectedRoute roles={["executive"]}>
+                  <ExecutiveDashboard />
                 </ProtectedRoute>
               }
             />

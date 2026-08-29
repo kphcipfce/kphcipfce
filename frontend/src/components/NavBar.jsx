@@ -20,8 +20,9 @@ export default function NavBar() {
         )}
         {user.role === "district_viewer" && <NavLink to="/my-activities">My Activities</NavLink>}
         {user.role === "grm_focal" && <NavLink to="/my-grm-activities">My Activities</NavLink>}
-        <NavLink to="/dashboard">Dashboard</NavLink>
+        {user.role !== "executive" && <NavLink to="/dashboard">Dashboard</NavLink>}
         {user.role === "super_admin" && <NavLink to="/admin">Admin</NavLink>}
+        {user.role === "executive" && <NavLink to="/executive">Executive</NavLink>}
       </div>
       <span className="spacer" />
       <div className="who-block">

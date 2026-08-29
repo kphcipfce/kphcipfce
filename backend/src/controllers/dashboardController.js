@@ -204,6 +204,145 @@ export async function superAdminOverview(req, res) {
   });
 }
 
+// Executive Dashboard: a leadership-only, read-only combined view across all three activity
+// panels (Social Mobilizer, District Coordinator, GRM Focal Person) — every other endpoint in
+// this file deliberately keeps those panels isolated (Field Tracker export, the regular
+// Monitoring Dashboard's district/team charts), but the Executive Dashboard's whole point is
+// "overall working across the org," so this is the one place they're merged.
+// ponytail: JS-side merge across three small collections rather than a cross-collection
+// aggregation pipeline — fine at this data volume; revisit with $unionWith if it ever grows
+// into the tens of thousands of records.
+export async function executiveOverview(req, res) {
+  const { district, team, activityType, status, from, to } = req.query;
+  const commonMatch = {};
+  if (district) commonMatch.district = new mongoose.Types.ObjectId(district);
+  if (status) commonMatch.status = status;
+  if (from || to) {
+    commonMatch.dateTime = {};
+    if (from) commonMatch.dateTime.$gte = new Date(from);
+    if (to) commonMatch.dateTime.$lte = new Date(to);
+  }
+  // Team only exists on Social Mobilizer records; activityType enums differ per panel, so a
+  // type picked for one panel simply matches zero records in the others, same as any other
+  // non-matching filter would — no special-casing needed.
+  const mobilizerMatch = { ...commonMatch };
+  if (team) mobilizerMatch.team = new mongoose.Types.ObjectId(team);
+  if (activityType) mobilizerMatch.activityType = activityType;
+  const otherMatch = { ...commonMatch };
+  if (activityType) otherMatch.activityType = activityType;
+
+  const [smActivities, coordActivities, grmActivities] = await Promise.all([
+    ActivityRecord.find(mobilizerMatch)
+      .populate("district", "name")
+      .populate("team", "name")
+      .populate("facility", "name category")
+      .populate("submittedBy", "name")
+      .populate("plan", "weeks")
+      .sort("-dateTime")
+      .lean(),
+    CoordinatorActivityRecord.find(otherMatch)
+      .populate("district", "name")
+      .populate("facility", "name category")
+      .populate("submittedBy", "name")
+      .populate("plan", "weeks")
+      .sort("-dateTime")
+      .lean(),
+    GrmActivityRecord.find(otherMatch)
+      .populate("district", "name")
+      .populate("facility", "name category")
+      .populate("submittedBy", "name")
+      .populate("plan", "weeks")
+      .sort("-dateTime")
+      .lean(),
+  ]);
+
+  // Each panel stores its week/day differently (a plan reference, never a flat field) —
+  // resolved here so the frontend reads one uniform shape regardless of which panel a row
+  // came from.
+  function normalize(list, panel) {
+    return list.map((a) => {
+      const weekEntry = a.plan?.weeks?.find((w) => String(w._id) === String(a.planWeek));
+      return {
+        _id: a._id,
+        panel,
+        dateTime: a.dateTime,
+        activityType: a.activityType,
+        district: a.district || null,
+        team: a.team || null,
+        facility: a.facility || null,
+        submittedBy: a.submittedBy || null,
+        status: a.status,
+        statusReason: a.statusReason,
+        visitStatus: a.visitStatus,
+        plannedActivity: a.plannedActivity,
+        responsiblePerson: a.responsiblePerson,
+        targetGroup: a.targetGroup,
+        expectedOutput: a.expectedOutput,
+        description: a.description,
+        maleAttendees: a.maleAttendees || 0,
+        femaleAttendees: a.femaleAttendees || 0,
+        week: weekEntry?.weekNumber ?? null,
+        dayOfWeek: weekEntry?.dayOfWeek ?? null,
+      };
+    });
+  }
+
+  const activities = [...normalize(smActivities, "mobilizer"), ...normalize(coordActivities, "coordinator"), ...normalize(grmActivities, "grm")].sort(
+    (a, b) => new Date(b.dateTime) - new Date(a.dateTime)
+  );
+
+  const byDistrictMap = new Map();
+  for (const a of activities) {
+    const key = a.district ? String(a.district._id) : "unknown";
+    const row = byDistrictMap.get(key) || {
+      districtId: a.district?._id,
+      district: a.district?.name || "Unknown",
+      activityCount: 0,
+      verified: 0,
+      flagged: 0,
+    };
+    row.activityCount += 1;
+    if (a.status === "verified") row.verified += 1;
+    if (a.status === "flagged") row.flagged += 1;
+    byDistrictMap.set(key, row);
+  }
+
+  // Team leaderboard is Social Mobilizer-only — Coordinator/GRM Focal Person work solo per
+  // district, there's no team unit to rank for them.
+  const byTeamMap = new Map();
+  for (const a of activities) {
+    if (a.panel !== "mobilizer" || !a.team) continue;
+    const key = String(a.team._id);
+    const row = byTeamMap.get(key) || { teamId: a.team._id, team: a.team.name, activityCount: 0, flagged: 0 };
+    row.activityCount += 1;
+    if (a.status === "flagged") row.flagged += 1;
+    byTeamMap.set(key, row);
+  }
+
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const activitiesThisWeek = activities.filter((a) => new Date(a.dateTime) >= weekAgo).length;
+  const activitiesThisMonth = activities.filter((a) => new Date(a.dateTime) >= monthAgo).length;
+  const flaggedNeedingReview = activities.filter((a) => a.status === "flagged").length;
+
+  // Same rule as monitoring()'s combined rate: "verified" is the one status value common to
+  // all three panels, unlike present/absent attendee data which only Social Mobilizer tracks.
+  const totalRecords = activities.length;
+  const totalVerified = activities.filter((a) => a.status === "verified").length;
+  const attendanceRate = totalRecords > 0 ? totalVerified / totalRecords : null;
+
+  res.json({
+    activities,
+    byDistrict: [...byDistrictMap.values()],
+    byTeam: [...byTeamMap.values()],
+    activitiesThisWeek,
+    activitiesThisMonth,
+    flaggedNeedingReview,
+    attendanceRate,
+  });
+}
+
 // FR-4.4: exports exactly the Field Tracker template's columns (no extra data), plus one
 // derived "Approval" column colored the same way the dashboard colors a record's status cell.
 const APPROVAL_STYLE = {

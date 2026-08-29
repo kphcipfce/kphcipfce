@@ -614,6 +614,19 @@ fieldset {
   border-radius: 4px;
 }
 
+/* Wraps a whole submission form so `disabled={busy}` on this one element disables every
+   field inside it natively while a submission is in flight — invisible otherwise, since a
+   plain fieldset's border/spacing would otherwise wrap the entire form in a visible box. */
+.form-disable-wrap {
+  border: none;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.form-disable-wrap:disabled {
+  opacity: 0.6;
+}
+
 .checkbox-row {
   flex-direction: row !important;
   align-items: center;
@@ -742,6 +755,7 @@ fieldset {
 
 .tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin: 1rem 0;
 }
@@ -1194,10 +1208,6 @@ fieldset {
 
   .stat {
     flex: 1 1 calc(50% - 0.5rem);
-  }
-
-  .tabs {
-    flex-wrap: wrap;
   }
 
   .moderation input {

@@ -6,7 +6,17 @@ import Spinner from "../components/Spinner";
 import { EyeIcon, EyeOffIcon } from "../components/icons";
 import { roleLabel } from "../utils/roleLabel";
 
-const TABS = ["Social Mobilizers", "Teams", "Districts", "Mobilizer Plans", "Coordinator Plans", "GRM Plans", "Overview", "Audit Log"];
+const TABS = [
+  "Social Mobilizers",
+  "Teams",
+  "Districts",
+  "Mobilizer Plans",
+  "Coordinator Plans",
+  "GRM Plans",
+  "Executive Officials",
+  "Overview",
+  "Audit Log",
+];
 
 export default function AdminPanel() {
   const [tab, setTab] = useState(TABS[0]);
@@ -27,6 +37,7 @@ export default function AdminPanel() {
       {tab === "Mobilizer Plans" && <MobilizerPlansTab />}
       {tab === "Coordinator Plans" && <CoordinatorPlansTab />}
       {tab === "GRM Plans" && <GrmPlansTab />}
+      {tab === "Executive Officials" && <ExecutiveOfficialsTab />}
       {tab === "Overview" && <OverviewTab />}
       {tab === "Audit Log" && <AuditLogTab />}
     </div>
@@ -127,6 +138,150 @@ function MembersTab() {
                 <td>{m.gender ? m.gender[0].toUpperCase() + m.gender.slice(1) : "—"}</td>
                 <td>{roleLabel(m.role)}</td>
                 <td>{m.team?.name || "—"}</td>
+                <td>
+                  {editingPasswordId === m._id ? (
+                    <div className="password-edit">
+                      <input
+                        type="password"
+                        placeholder="New password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        disabled={savingPassword}
+                        className={savingPassword ? "btn-loading" : ""}
+                        onClick={() => savePassword(m._id)}
+                      >
+                        <span className="btn-label">Save</span>
+                        {savingPassword && <span className="btn-spinner" />}
+                      </button>
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        onClick={() => togglePasswordEdit(m._id)}
+                        aria-label={`Close password editor for ${m.name}`}
+                      >
+                        <EyeOffIcon />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      onClick={() => togglePasswordEdit(m._id)}
+                      aria-label={`Edit ${m.name}'s password`}
+                    >
+                      <EyeIcon />
+                    </button>
+                  )}
+                </td>
+                <td>
+                  <button className={m.active ? "btn-deactivate" : "btn-activate"} onClick={() => toggleActive(m)}>
+                    {m.active ? "Deactivate" : "Activate"}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// Executive accounts are full standalone logins like super_admin (no team, no gender, no
+// district scope — they see every district on the Executive Dashboard), so this mirrors
+// MembersTab's create/password-edit/deactivate pattern but without the fields that don't apply.
+function ExecutiveOfficialsTab() {
+  const { showToast } = useToast();
+  const [executives, setExecutives] = useState([]);
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [editingPasswordId, setEditingPasswordId] = useState(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  function load() {
+    api.get("/executives").then((res) => setExecutives(res.data));
+  }
+  useEffect(load, []);
+
+  async function createExecutive(e) {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      await api.post("/executives", form);
+      setForm({ name: "", email: "", password: "" });
+      showToast("success", "Executive official created", "They can now sign in with their password.");
+      load();
+    } catch (err) {
+      showToast("error", err.response?.data?.error || "Failed to create executive official");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function toggleActive(m) {
+    if (m.active && !confirm(`Deactivate ${m.name}? They won't be able to sign in until reactivated.`)) return;
+    await api.patch(`/executives/${m._id}`, { active: !m.active });
+    load();
+  }
+
+  function togglePasswordEdit(id) {
+    setNewPassword("");
+    setEditingPasswordId((current) => (current === id ? null : id));
+  }
+
+  async function savePassword(id) {
+    if (!newPassword) return showToast("error", "Enter a new password");
+    setSavingPassword(true);
+    try {
+      await api.patch(`/executives/${id}`, { password: newPassword });
+      setEditingPasswordId(null);
+      setNewPassword("");
+      showToast("success", "Password updated", "The executive official can sign in with the new password.");
+    } catch (err) {
+      showToast("error", err.response?.data?.error || "Failed to update password");
+    } finally {
+      setSavingPassword(false);
+    }
+  }
+
+  return (
+    <div>
+      <form className="card inline-form" onSubmit={createExecutive}>
+        <input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+        <input placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+        <input
+          placeholder="Password"
+          type="password"
+          value={form.password}
+          onChange={(e) => setForm({ ...form, password: e.target.value })}
+          required
+        />
+        <button type="submit" disabled={creating} className={creating ? "btn-loading" : ""}>
+          <span className="btn-label">Add Executive Official</span>
+          {creating && <span className="btn-spinner" />}
+        </button>
+      </form>
+
+      <div className="table-scroll">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Password</th>
+              <th>Active</th>
+            </tr>
+          </thead>
+          <tbody>
+            {executives.map((m) => (
+              <tr key={m._id}>
+                <td>{m.name}</td>
+                <td>{m.email}</td>
                 <td>
                   {editingPasswordId === m._id ? (
                     <div className="password-edit">

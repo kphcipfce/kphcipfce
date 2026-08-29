@@ -6,9 +6,9 @@ import { logAction } from "../middleware/audit.js";
 // Super Admin accounts aren't manageable through this list — surfacing one here would let
 // a super_admin accidentally deactivate themselves and lock everyone out of the system.
 // district_viewer/grm_focal accounts are system-managed alongside their district
-// (Districts tab), not here.
+// (Districts tab), not here; executive accounts have their own tab (Executive Officials).
 export async function listMembers(req, res) {
-  const members = await Member.find({ role: { $nin: ["super_admin", "district_viewer", "grm_focal"] } })
+  const members = await Member.find({ role: { $nin: ["super_admin", "district_viewer", "grm_focal", "executive"] } })
     .select("-passwordHash")
     .populate("team")
     .sort("name");

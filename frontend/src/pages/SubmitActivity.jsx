@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import Spinner from "../components/Spinner";
 import { CameraIcon } from "../components/icons";
+import SubmissionSuccess from "../components/SubmissionSuccess";
 
 const ACTIVITY_TYPES = [
   "Community engagement session",
@@ -46,6 +47,7 @@ export default function SubmitActivity() {
   const [description, setDescription] = useState("");
   const [photos, setPhotos] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [justSubmitted, setJustSubmitted] = useState(false);
 
   // Guards against an in-flight request (e.g. React StrictMode's duplicate mount effect)
   // resolving after a newer one and clobbering fresher data with stale results.
@@ -152,15 +154,10 @@ export default function SubmitActivity() {
       }
       photos.forEach((file) => form.append("photos", file));
 
-      const res = await api.post("/activities", form, {
+      await api.post("/activities", form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      const { activity, flags } = res.data;
-      let statusSummary = `Status: ${activity.status}.`;
-      if (flags.anyDuplicate) statusSummary += " Duplicate image flagged for review.";
-      if (flags.anyLocationUnverified) statusSummary += " Location not verified.";
-      if (flags.anyCaptureDateMismatch) statusSummary += " Photo's capture date doesn't match today, flagged for review.";
-      showToast("success", "Activity submitted", statusSummary);
+      setJustSubmitted(true);
 
       setPlannedActivity("");
       setMaleAttendees("0");
@@ -180,6 +177,18 @@ export default function SubmitActivity() {
     } finally {
       setBusy(false);
     }
+  }
+
+  // Checked first, ahead of the empty-state guards below: submitting the last available week
+  // makes it refetch to empty, and that "no plan assigned" state must never outrun the success
+  // screen for the submission that just happened.
+  if (justSubmitted) {
+    return (
+      <div className="page">
+        <h1>Submit Activity</h1>
+        <SubmissionSuccess onReturn={() => setJustSubmitted(false)} />
+      </div>
+    );
   }
 
   if (facilities === null || plans === null)
@@ -217,6 +226,7 @@ export default function SubmitActivity() {
     <div className="page">
       <h1>Submit Activity</h1>
       <form className="card" onSubmit={handleSubmit}>
+        <fieldset disabled={busy} className="form-disable-wrap">
         <label>
           Health Facility / Community
           <select value={facility} onChange={(e) => setFacility(e.target.value)} required>
@@ -344,6 +354,7 @@ export default function SubmitActivity() {
             </ul>
           )}
         </div>
+        </fieldset>
 
         <button type="submit" disabled={busy} className={busy ? "btn-loading" : ""}>
           <span className="btn-label">Submit</span>
