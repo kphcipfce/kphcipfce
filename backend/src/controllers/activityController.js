@@ -106,16 +106,24 @@ export async function createActivity(req, res) {
 
   const attendees = Array.isArray(attendeeIds) ? attendeeIds : attendeeIds ? [attendeeIds] : [req.user._id];
 
-  // Mirrors the dropdown filtering in listSocialMobilizerPlans: a week that's already
-  // submitted, verified, or flagged is occupied for the whole team (not just the specific
-  // attendees), same as Coordinator/GRM plan weeks — this blocks a stale/still-open form from
-  // double-using it, regardless of which teammate submits or which activity type is picked.
-  const alreadyOccupied = await ActivityRecord.exists({
+  // Mirrors the dropdown filtering in listSocialMobilizerPlans: occupancy is per-attendee, not
+  // per-team — a teammate who wasn't checked as an attendee on an existing submission for this
+  // week can still submit their own separate one for it, but nobody can double-log the same
+  // week for themselves.
+  const sameWeekActivityIds = await ActivityRecord.find({
     team: teamId,
     planWeek,
     status: { $in: ["submitted", "verified", "flagged"] },
-  });
-  if (alreadyOccupied) return res.status(409).json({ error: "This week already has an activity submitted for it" });
+  }).distinct("_id");
+  if (sameWeekActivityIds.length) {
+    const alreadyAttended = await AttendanceEntry.exists({
+      activityRecord: { $in: sameWeekActivityIds },
+      member: { $in: attendees },
+    });
+    if (alreadyAttended) {
+      return res.status(409).json({ error: "One of the selected attendees already has this week's activity submitted" });
+    }
+  }
 
   const submittedAt = new Date();
   const dateTime = new Date(weekEntry.date);
@@ -215,7 +223,10 @@ export async function listActivities(req, res) {
     .populate("district", "name")
     .populate("submittedBy", "name")
     .populate("facility", "name category")
-    .sort("-dateTime")
+    // Most recently submitted first — dateTime is the plan week's own scheduled date (which,
+    // since a week can be assigned any number/date, isn't always in submission order), so
+    // sorting by that instead of createdAt could put an older submission above a newer one.
+    .sort("-createdAt")
     .lean();
 
   // One flag per activity so the list view can color a verified row by attendance

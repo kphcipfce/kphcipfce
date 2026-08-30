@@ -10,6 +10,7 @@ const TABS = [
   "Social Mobilizers",
   "Teams",
   "Districts",
+  "District Coordinators",
   "Mobilizer Plans",
   "Coordinator Plans",
   "GRM Plans",
@@ -34,6 +35,7 @@ export default function AdminPanel() {
       {tab === "Social Mobilizers" && <MembersTab />}
       {tab === "Teams" && <TeamsTab />}
       {tab === "Districts" && <DistrictsTab />}
+      {tab === "District Coordinators" && <DistrictCoordinatorsTab />}
       {tab === "Mobilizer Plans" && <MobilizerPlansTab />}
       {tab === "Coordinator Plans" && <CoordinatorPlansTab />}
       {tab === "GRM Plans" && <GrmPlansTab />}
@@ -335,6 +337,162 @@ function ExecutiveOfficialsTab() {
   );
 }
 
+// District Coordinators are now several accounts per district (4, seeded), so this mirrors
+// ExecutiveOfficialsTab's create/password-edit/deactivate pattern but with a required district
+// picker, and lists every coordinator across every district (not scoped to one).
+function DistrictCoordinatorsTab() {
+  const { showToast } = useToast();
+  const [coordinators, setCoordinators] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [form, setForm] = useState({ name: "", email: "", password: "", district: "" });
+  const [editingPasswordId, setEditingPasswordId] = useState(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  function load() {
+    api.get("/district-coordinators").then((res) => setCoordinators(res.data));
+    api.get("/districts").then((res) => setDistricts(res.data));
+  }
+  useEffect(load, []);
+
+  async function createCoordinator(e) {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      await api.post("/district-coordinators", form);
+      setForm({ name: "", email: "", password: "", district: "" });
+      showToast("success", "District Coordinator created", "They can now sign in with their password.");
+      load();
+    } catch (err) {
+      showToast("error", err.response?.data?.error || "Failed to create district coordinator");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function toggleActive(m) {
+    if (m.active && !confirm(`Deactivate ${m.name}? They won't be able to sign in until reactivated.`)) return;
+    await api.patch(`/district-coordinators/${m._id}`, { active: !m.active });
+    load();
+  }
+
+  function togglePasswordEdit(id) {
+    setNewPassword("");
+    setEditingPasswordId((current) => (current === id ? null : id));
+  }
+
+  async function savePassword(id) {
+    if (!newPassword) return showToast("error", "Enter a new password");
+    setSavingPassword(true);
+    try {
+      await api.patch(`/district-coordinators/${id}`, { password: newPassword });
+      setEditingPasswordId(null);
+      setNewPassword("");
+      showToast("success", "Password updated", "The district coordinator can sign in with the new password.");
+    } catch (err) {
+      showToast("error", err.response?.data?.error || "Failed to update password");
+    } finally {
+      setSavingPassword(false);
+    }
+  }
+
+  return (
+    <div>
+      <form className="card inline-form" onSubmit={createCoordinator}>
+        <input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+        <input placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+        <input
+          placeholder="Password"
+          type="password"
+          value={form.password}
+          onChange={(e) => setForm({ ...form, password: e.target.value })}
+          required
+        />
+        <select value={form.district} onChange={(e) => setForm({ ...form, district: e.target.value })} required>
+          <option value="">District</option>
+          {districts.map((d) => (
+            <option key={d._id} value={d._id}>
+              {d.name}
+            </option>
+          ))}
+        </select>
+        <button type="submit" disabled={creating} className={creating ? "btn-loading" : ""}>
+          <span className="btn-label">Add District Coordinator</span>
+          {creating && <span className="btn-spinner" />}
+        </button>
+      </form>
+
+      <div className="table-scroll">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>District</th>
+              <th>Password</th>
+              <th>Active</th>
+            </tr>
+          </thead>
+          <tbody>
+            {coordinators.map((m) => (
+              <tr key={m._id}>
+                <td>{m.name}</td>
+                <td>{m.email}</td>
+                <td>{m.district?.name || "—"}</td>
+                <td>
+                  {editingPasswordId === m._id ? (
+                    <div className="password-edit">
+                      <input
+                        type="password"
+                        placeholder="New password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        disabled={savingPassword}
+                        className={savingPassword ? "btn-loading" : ""}
+                        onClick={() => savePassword(m._id)}
+                      >
+                        <span className="btn-label">Save</span>
+                        {savingPassword && <span className="btn-spinner" />}
+                      </button>
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        onClick={() => togglePasswordEdit(m._id)}
+                        aria-label={`Close password editor for ${m.name}`}
+                      >
+                        <EyeOffIcon />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      onClick={() => togglePasswordEdit(m._id)}
+                      aria-label={`Edit ${m.name}'s password`}
+                    >
+                      <EyeIcon />
+                    </button>
+                  )}
+                </td>
+                <td>
+                  <button className={m.active ? "btn-deactivate" : "btn-activate"} onClick={() => toggleActive(m)}>
+                    {m.active ? "Deactivate" : "Activate"}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function TeamsTab() {
   const { showToast } = useToast();
   const [teams, setTeams] = useState([]);
@@ -512,13 +670,10 @@ function DistrictsTab() {
   const { showToast } = useToast();
   const [districts, setDistricts] = useState([]);
   const [name, setName] = useState("");
-  const [openViewerId, setOpenViewerId] = useState(null);
-  const [viewerPassword, setViewerPassword] = useState("");
   const [openGrmId, setOpenGrmId] = useState(null);
   const [grmFocalPassword, setGrmFocalPassword] = useState("");
   const [creating, setCreating] = useState(false);
   const [removingId, setRemovingId] = useState(null);
-  const [savingViewerPassword, setSavingViewerPassword] = useState(false);
   const [savingGrmFocalPassword, setSavingGrmFocalPassword] = useState(false);
 
   function load() {
@@ -532,7 +687,7 @@ function DistrictsTab() {
     try {
       await api.post("/districts", { name });
       setName("");
-      showToast("success", "District created", "A read-only viewer login was generated automatically.");
+      showToast("success", "District created", "A GRM Focal Person login was generated automatically — add District Coordinators from the District Coordinators tab.");
       load();
     } catch (err) {
       showToast("error", err.response?.data?.error || "Failed to create district");
@@ -552,29 +707,6 @@ function DistrictsTab() {
       showToast("error", err.response?.data?.error || "Failed to delete district");
     } finally {
       setRemovingId(null);
-    }
-  }
-
-  function toggleViewer(d) {
-    setOpenViewerId((current) => {
-      if (current === d._id) return null;
-      setViewerPassword(d.viewerPassword || "");
-      return d._id;
-    });
-  }
-
-  async function saveViewerPassword(id) {
-    if (!viewerPassword) return showToast("error", "Enter a password");
-    setSavingViewerPassword(true);
-    try {
-      await api.patch(`/districts/${id}/viewer-password`, { password: viewerPassword });
-      setOpenViewerId(null);
-      showToast("success", "Viewer password updated", "Share the new password with the district coordinator.");
-      load();
-    } catch (err) {
-      showToast("error", err.response?.data?.error || "Failed to update password");
-    } finally {
-      setSavingViewerPassword(false);
     }
   }
 
@@ -615,7 +747,6 @@ function DistrictsTab() {
           <thead>
             <tr>
               <th>Name</th>
-              <th>District Coordinator Login</th>
               <th>GRM Focal Person Login</th>
               <th></th>
             </tr>
@@ -624,30 +755,6 @@ function DistrictsTab() {
             {districts.map((d) => (
               <tr key={d._id}>
                 <td>{d.name}</td>
-                <td>
-                  {openViewerId === d._id ? (
-                    <div className="password-edit">
-                      <span>{d.viewerMember?.email}</span>
-                      <input type="text" value={viewerPassword} onChange={(e) => setViewerPassword(e.target.value)} autoFocus />
-                      <button
-                        type="button"
-                        disabled={savingViewerPassword}
-                        className={savingViewerPassword ? "btn-loading" : ""}
-                        onClick={() => saveViewerPassword(d._id)}
-                      >
-                        <span className="btn-label">Save</span>
-                        {savingViewerPassword && <span className="btn-spinner" />}
-                      </button>
-                      <button type="button" className="icon-btn" onClick={() => toggleViewer(d)} aria-label={`Close viewer login for ${d.name}`}>
-                        <EyeOffIcon />
-                      </button>
-                    </div>
-                  ) : (
-                    <button type="button" className="icon-btn" onClick={() => toggleViewer(d)} aria-label={`Show viewer login for ${d.name}`}>
-                      <EyeIcon />
-                    </button>
-                  )}
-                </td>
                 <td>
                   {openGrmId === d._id ? (
                     <div className="password-edit">
@@ -715,10 +822,11 @@ const MONTH_NAMES = [
   "December",
 ];
 
-const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const WEEK_NUMBERS = Array.from({ length: 18 }, (_, i) => i + 1);
 
 function emptyWeek() {
-  return { date: "", dayOfWeek: "" };
+  return { weekNumber: "", date: "", dayOfWeek: "" };
 }
 
 function MobilizerPlansTab() {
@@ -812,7 +920,20 @@ function MobilizerPlansTab() {
           {form.weeks.map((w, i) => (
             <div className="date-time-row" key={i}>
               <label>
-                Week {i + 1} date
+                Week
+                <select value={w.weekNumber} onChange={(e) => updateWeek(i, "weekNumber", e.target.value)} required>
+                  <option value="" disabled>
+                    Select week
+                  </option>
+                  {WEEK_NUMBERS.map((n) => (
+                    <option key={n} value={n}>
+                      Week {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Date
                 <input type="date" value={w.date} onChange={(e) => updateWeek(i, "date", e.target.value)} required />
               </label>
               <label>
@@ -915,19 +1036,19 @@ function CoordinatorPlansTab() {
   const { showToast } = useToast();
   const now = new Date();
   const [plans, setPlans] = useState([]);
-  const [districts, setDistricts] = useState([]);
+  const [coordinators, setCoordinators] = useState([]);
   const [form, setForm] = useState({
     month: now.getMonth() + 1,
     year: now.getFullYear(),
     weeks: [emptyWeek(), emptyWeek(), emptyWeek(), emptyWeek()],
-    districtIds: [],
+    coordinatorIds: [],
   });
   const [creating, setCreating] = useState(false);
   const [removingId, setRemovingId] = useState(null);
 
   function load() {
     api.get("/coordinator-plans").then((res) => setPlans(res.data));
-    api.get("/districts").then((res) => setDistricts(res.data));
+    api.get("/district-coordinators").then((res) => setCoordinators(res.data));
   }
   useEffect(load, []);
 
@@ -951,9 +1072,9 @@ function CoordinatorPlansTab() {
         month: Number(form.month),
         year: Number(form.year),
         weeks: form.weeks,
-        districts: form.districtIds,
+        coordinators: form.coordinatorIds,
       });
-      setForm({ month: now.getMonth() + 1, year: now.getFullYear(), weeks: [emptyWeek(), emptyWeek(), emptyWeek(), emptyWeek()], districtIds: [] });
+      setForm({ month: now.getMonth() + 1, year: now.getFullYear(), weeks: [emptyWeek(), emptyWeek(), emptyWeek(), emptyWeek()], coordinatorIds: [] });
       showToast("success", "Plan created", "Assigned coordinators can now submit against these weeks.");
       load();
     } catch (err) {
@@ -1002,7 +1123,20 @@ function CoordinatorPlansTab() {
           {form.weeks.map((w, i) => (
             <div className="date-time-row" key={i}>
               <label>
-                Week {i + 1} date
+                Week
+                <select value={w.weekNumber} onChange={(e) => updateWeek(i, "weekNumber", e.target.value)} required>
+                  <option value="" disabled>
+                    Select week
+                  </option>
+                  {WEEK_NUMBERS.map((n) => (
+                    <option key={n} value={n}>
+                      Week {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Date
                 <input type="date" value={w.date} onChange={(e) => updateWeek(i, "date", e.target.value)} required />
               </label>
               <label>
@@ -1031,16 +1165,16 @@ function CoordinatorPlansTab() {
         </fieldset>
 
         <label>
-          Assign to districts
+          Assign to coordinators
           <select
             multiple
-            value={form.districtIds}
-            onChange={(e) => setForm({ ...form, districtIds: Array.from(e.target.selectedOptions, (o) => o.value) })}
+            value={form.coordinatorIds}
+            onChange={(e) => setForm({ ...form, coordinatorIds: Array.from(e.target.selectedOptions, (o) => o.value) })}
             required
           >
-            {districts.map((d) => (
-              <option key={d._id} value={d._id}>
-                {d.name}
+            {coordinators.map((c) => (
+              <option key={c._id} value={c._id}>
+                {c.name} ({c.district?.name})
               </option>
             ))}
           </select>
@@ -1057,7 +1191,7 @@ function CoordinatorPlansTab() {
           <thead>
             <tr>
               <th>Month/Year</th>
-              <th>Assigned Districts</th>
+              <th>Assigned Coordinators</th>
               <th>Weeks</th>
               <th>Created By</th>
               <th></th>
@@ -1069,7 +1203,7 @@ function CoordinatorPlansTab() {
                 <td>
                   {MONTH_NAMES[p.month - 1]} {p.year}
                 </td>
-                <td>{p.districts.map((d) => d.name).join(" & ")}</td>
+                <td>{p.coordinators.map((c) => c.name).join(" & ")}</td>
                 <td>
                   {p.weeks.map((w) => (
                     <div key={w._id}>
@@ -1192,7 +1326,20 @@ function GrmPlansTab() {
           {form.weeks.map((w, i) => (
             <div className="date-time-row" key={i}>
               <label>
-                Week {i + 1} date
+                Week
+                <select value={w.weekNumber} onChange={(e) => updateWeek(i, "weekNumber", e.target.value)} required>
+                  <option value="" disabled>
+                    Select week
+                  </option>
+                  {WEEK_NUMBERS.map((n) => (
+                    <option key={n} value={n}>
+                      Week {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Date
                 <input type="date" value={w.date} onChange={(e) => updateWeek(i, "date", e.target.value)} required />
               </label>
               <label>

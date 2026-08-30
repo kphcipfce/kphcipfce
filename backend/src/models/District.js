@@ -4,12 +4,10 @@ const districtSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true, trim: true },
     adminIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "Member" }],
-    // The district_viewer (District Coordinator) account auto-created alongside this
-    // district. Password is kept in plaintext here (in addition to the Member's bcrypt
-    // hash) specifically so a Super Admin can view/hand out these shared login credentials —
-    // unlike regular member passwords, this is a deliberately viewable service credential.
-    viewerMember: { type: mongoose.Schema.Types.ObjectId, ref: "Member", default: null },
-    viewerPassword: { type: String, default: null },
+    // District Coordinators are now several accounts per district (managed in their own
+    // "District Coordinators" Admin Panel tab, via the Member model's own district field),
+    // not a single account tracked here — unlike the GRM Focal Person account below, which
+    // stays one-per-district.
     // Same idea, for the district's GRM Focal Person account.
     grmFocalMember: { type: mongoose.Schema.Types.ObjectId, ref: "Member", default: null },
     grmFocalPassword: { type: String, default: null },

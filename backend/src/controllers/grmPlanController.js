@@ -36,8 +36,11 @@ export async function createGrmPlan(req, res) {
   if (!month || month < 1 || month > 12 || !year) {
     return res.status(400).json({ error: "Valid month (1-12) and year required" });
   }
-  if (!Array.isArray(weeks) || weeks.length === 0 || weeks.some((w) => !w.date || !w.dayOfWeek)) {
-    return res.status(400).json({ error: "At least one week with a date and day of week required" });
+  if (!Array.isArray(weeks) || weeks.length === 0 || weeks.some((w) => !w.weekNumber || !w.date || !w.dayOfWeek)) {
+    return res.status(400).json({ error: "At least one week with a week number, date, and day of week required" });
+  }
+  if (weeks.some((w) => !Number.isInteger(Number(w.weekNumber)) || Number(w.weekNumber) < 1 || Number(w.weekNumber) > 18)) {
+    return res.status(400).json({ error: "Week number must be between 1 and 18" });
   }
   if (!Array.isArray(districts) || districts.length === 0) {
     return res.status(400).json({ error: "At least one district must be assigned" });
@@ -46,7 +49,9 @@ export async function createGrmPlan(req, res) {
   const foundDistricts = await District.find({ _id: { $in: districts } });
   if (foundDistricts.length !== districts.length) return res.status(400).json({ error: "One or more districts not found" });
 
-  const normalizedWeeks = weeks.map((w, i) => ({ weekNumber: i + 1, date: w.date, dayOfWeek: w.dayOfWeek }));
+  // weekNumber is now chosen explicitly by the admin (a dropdown of 1-18), not derived from
+  // array order — a plan doesn't have to start at week 1 or number its rows sequentially.
+  const normalizedWeeks = weeks.map((w) => ({ weekNumber: Number(w.weekNumber), date: w.date, dayOfWeek: w.dayOfWeek }));
 
   const plan = await GrmPlan.create({ month, year, weeks: normalizedWeeks, districts, createdBy: req.user._id });
   await logAction(req.user._id, "create", "GrmPlan", plan._id, { month, year, districts });

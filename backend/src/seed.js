@@ -14,7 +14,6 @@ import CoordinatorPlan from "./models/CoordinatorPlan.js";
 import CoordinatorActivityRecord from "./models/CoordinatorActivityRecord.js";
 import GrmPlan from "./models/GrmPlan.js";
 import GrmActivityRecord from "./models/GrmActivityRecord.js";
-import { attachDistrictViewer } from "./utils/districtViewer.js";
 import { FACILITIES_BY_DISTRICT } from "./data/facilities.js";
 
 const PASSWORD = "12345";
@@ -60,15 +59,27 @@ async function seed() {
   const passwordHash = await bcrypt.hash(PASSWORD, 10);
   const districtNames = Object.keys(MEMBERS_BY_DISTRICT);
 
-  // Each district also gets its own read-only district_viewer login, same as districts
-  // created through the admin panel.
   const districtIdByName = {};
   for (const name of districtNames) {
     const district = await District.create({ name });
     districtIdByName[name] = district._id;
-    await attachDistrictViewer(district);
-    await district.save();
-    console.log(`${name} district_viewer password: ${district.viewerPassword}`);
+  }
+
+  // 4 District Coordinator (district_viewer) accounts per district — 16 total — same simple
+  // password as everyone else, numbered logins rather than the old one-per-district design.
+  for (const name of districtNames) {
+    const slug = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    for (let i = 1; i <= 4; i++) {
+      const email = `${slug}${i}@gmail.com`;
+      await Member.create({
+        name: `${name} District Coordinator ${i}`,
+        email,
+        passwordHash,
+        role: "district_viewer",
+        district: districtIdByName[name],
+      });
+      console.log(`${name} district_viewer ${i}: ${email}`);
+    }
   }
 
   // One GRM Focal Person account per district, same simple password as social mobilizers

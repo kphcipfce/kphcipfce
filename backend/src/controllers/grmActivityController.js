@@ -193,7 +193,9 @@ export async function listGrmActivities(req, res) {
     .populate("district", "name")
     .populate("submittedBy", "name")
     .populate("facility", "name category")
-    .sort("-dateTime")
+    // Most recently submitted first — see activityController.js's listActivities for why
+    // createdAt, not dateTime (the plan week's own date, not necessarily submission order).
+    .sort("-createdAt")
     .lean();
 
   res.json(activities);

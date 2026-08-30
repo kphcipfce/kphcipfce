@@ -249,7 +249,7 @@ export default function MyGrmActivities() {
 
         <label>
           Responsible Person
-          <input value={responsiblePerson} onChange={(e) => setResponsiblePerson(e.target.value)} required />
+          <input value={responsiblePerson} disabled required />
         </label>
         <label>
           Target Group

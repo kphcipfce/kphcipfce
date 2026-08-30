@@ -89,19 +89,19 @@ export async function createCoordinatorActivity(req, res) {
   }
 
   // Defense in depth: verify the referenced plan/week is real and actually assigned to this
-  // coordinator's district, rather than trusting whatever IDs the client happens to send.
+  // coordinator's own account, rather than trusting whatever IDs the client happens to send.
   const planDoc = await CoordinatorPlan.findById(plan);
   if (!planDoc) return res.status(400).json({ error: "Plan not found" });
-  if (!planDoc.districts.some((d) => String(d) === String(districtId))) {
-    return res.status(403).json({ error: "This plan is not assigned to your district" });
+  if (!planDoc.coordinators.some((c) => String(c) === String(req.user._id))) {
+    return res.status(403).json({ error: "This plan is not assigned to you" });
   }
   const weekEntry = planDoc.weeks.id(planWeek);
   if (!weekEntry) return res.status(400).json({ error: "Invalid week for this plan" });
 
   // Mirrors the dropdown filtering in listCoordinatorPlans: a week that's already submitted,
-  // verified, or flagged is occupied, so this blocks a stale/still-open form from double-using it.
+  // verified, or flagged is occupied for everyone the plan is shared with — this blocks a
+  // stale/still-open form from double-using it.
   const alreadyOccupied = await CoordinatorActivityRecord.exists({
-    district: districtId,
     planWeek,
     status: { $in: ["submitted", "verified", "flagged"] },
   });
@@ -186,14 +186,17 @@ export async function listCoordinatorActivities(req, res) {
   const filter = {};
   if (req.query.district) filter.district = req.query.district;
   if (req.query.status) filter.status = req.query.status;
-  // A district_viewer only ever sees their own district's records; super_admin sees everything.
-  if (req.user.role === "district_viewer") filter.district = req.user.district;
+  // A district_viewer only ever sees their own submissions (there are several coordinators
+  // per district now, sharing plans but not each other's records); super_admin sees everything.
+  if (req.user.role === "district_viewer") filter.submittedBy = req.user._id;
 
   const activities = await CoordinatorActivityRecord.find(filter)
     .populate("district", "name")
     .populate("submittedBy", "name")
     .populate("facility", "name category")
-    .sort("-dateTime")
+    // Most recently submitted first — see activityController.js's listActivities for why
+    // createdAt, not dateTime (the plan week's own date, not necessarily submission order).
+    .sort("-createdAt")
     .lean();
 
   res.json(activities);
@@ -205,7 +208,7 @@ export async function getCoordinatorActivity(req, res) {
     .populate("submittedBy", "name")
     .populate("facility", "name category");
   if (!activity) return res.status(404).json({ error: "Not found" });
-  if (req.user.role === "district_viewer" && String(activity.district?._id) !== String(req.user.district)) {
+  if (req.user.role === "district_viewer" && String(activity.submittedBy?._id) !== String(req.user._id)) {
     return res.status(403).json({ error: "Forbidden" });
   }
 

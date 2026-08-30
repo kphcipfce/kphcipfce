@@ -10,10 +10,11 @@ function generatePassword() {
   return crypto.randomBytes(6).toString("hex");
 }
 
-// Same pattern as attachDistrictViewer — creates the GRM Focal Person account for a newly
-// created district and stamps the district doc with the account's id + plaintext password
-// (saved by caller). Accepts an explicit password (seed.js uses a fixed simple one); defaults
-// to a random one for districts created through the admin panel, matching the coordinator flow.
+// Creates the GRM Focal Person account for a newly created district and stamps the district
+// doc with the account's id + plaintext password (saved by caller) — GRM Focal Person stays
+// one-per-district, unlike District Coordinators (see districtCoordinatorController.js).
+// Accepts an explicit password (seed.js uses a fixed simple one); defaults to a random one
+// for districts created through the admin panel.
 export async function attachGrmFocal(district, password = generatePassword()) {
   const passwordHash = await bcrypt.hash(password, 10);
   const focal = await Member.create({
