@@ -54,6 +54,7 @@ function MembersTab() {
   const [newPassword, setNewPassword] = useState("");
   const [creating, setCreating] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [removingId, setRemovingId] = useState(null);
 
   function load() {
     api.get("/members").then((res) => setMembers(res.data));
@@ -75,10 +76,18 @@ function MembersTab() {
     }
   }
 
-  async function toggleActive(m) {
-    if (m.active && !confirm(`Deactivate ${m.name}? They won't be able to sign in until reactivated.`)) return;
-    await api.patch(`/members/${m._id}`, { active: !m.active });
-    load();
+  async function deleteMember(m) {
+    if (!confirm(`Delete ${m.name}? This cannot be undone.`)) return;
+    setRemovingId(m._id);
+    try {
+      await api.delete(`/members/${m._id}`);
+      showToast("success", "Social Mobilizer deleted");
+      load();
+    } catch (err) {
+      showToast("error", err.response?.data?.error || "Failed to delete social mobilizer");
+    } finally {
+      setRemovingId(null);
+    }
   }
 
   function togglePasswordEdit(id) {
@@ -129,7 +138,7 @@ function MembersTab() {
               <th>Role</th>
               <th>Team</th>
               <th>Password</th>
-              <th>Active</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -180,8 +189,12 @@ function MembersTab() {
                   )}
                 </td>
                 <td>
-                  <button className={m.active ? "btn-deactivate" : "btn-activate"} onClick={() => toggleActive(m)}>
-                    {m.active ? "Deactivate" : "Activate"}
+                  <button
+                    className="btn-deactivate"
+                    disabled={removingId === m._id}
+                    onClick={() => deleteMember(m)}
+                  >
+                    {removingId === m._id ? "Deleting…" : "Delete"}
                   </button>
                 </td>
               </tr>
@@ -349,6 +362,7 @@ function DistrictCoordinatorsTab() {
   const [newPassword, setNewPassword] = useState("");
   const [creating, setCreating] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [removingId, setRemovingId] = useState(null);
 
   function load() {
     api.get("/district-coordinators").then((res) => setCoordinators(res.data));
@@ -371,10 +385,18 @@ function DistrictCoordinatorsTab() {
     }
   }
 
-  async function toggleActive(m) {
-    if (m.active && !confirm(`Deactivate ${m.name}? They won't be able to sign in until reactivated.`)) return;
-    await api.patch(`/district-coordinators/${m._id}`, { active: !m.active });
-    load();
+  async function deleteCoordinator(m) {
+    if (!confirm(`Delete ${m.name}? This cannot be undone.`)) return;
+    setRemovingId(m._id);
+    try {
+      await api.delete(`/district-coordinators/${m._id}`);
+      showToast("success", "District Coordinator deleted");
+      load();
+    } catch (err) {
+      showToast("error", err.response?.data?.error || "Failed to delete district coordinator");
+    } finally {
+      setRemovingId(null);
+    }
   }
 
   function togglePasswordEdit(id) {
@@ -431,7 +453,7 @@ function DistrictCoordinatorsTab() {
               <th>Email</th>
               <th>District</th>
               <th>Password</th>
-              <th>Active</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -480,8 +502,12 @@ function DistrictCoordinatorsTab() {
                   )}
                 </td>
                 <td>
-                  <button className={m.active ? "btn-deactivate" : "btn-activate"} onClick={() => toggleActive(m)}>
-                    {m.active ? "Deactivate" : "Activate"}
+                  <button
+                    className="btn-deactivate"
+                    disabled={removingId === m._id}
+                    onClick={() => deleteCoordinator(m)}
+                  >
+                    {removingId === m._id ? "Deleting…" : "Delete"}
                   </button>
                 </td>
               </tr>
@@ -503,6 +529,7 @@ function TeamsTab() {
   const [editForm, setEditForm] = useState({ memberA: "", memberB: "", district: "" });
   const [creating, setCreating] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [removingId, setRemovingId] = useState(null);
 
   function load() {
     api.get("/teams").then((res) => setTeams(res.data));
@@ -548,6 +575,20 @@ function TeamsTab() {
       showToast("error", err.response?.data?.error || "Failed to update team");
     } finally {
       setSavingEdit(false);
+    }
+  }
+
+  async function deleteTeam(t) {
+    if (!confirm(`Delete ${t.name}? This cannot be undone.`)) return;
+    setRemovingId(t._id);
+    try {
+      await api.delete(`/teams/${t._id}`);
+      showToast("success", "Team deleted");
+      load();
+    } catch (err) {
+      showToast("error", err.response?.data?.error || "Failed to delete team");
+    } finally {
+      setRemovingId(null);
     }
   }
 
@@ -654,7 +695,16 @@ function TeamsTab() {
                         </button>
                       </>
                     ) : (
-                      <button onClick={() => startEdit(t)}>Edit</button>
+                      <>
+                        <button onClick={() => startEdit(t)}>Edit</button>{" "}
+                        <button
+                          className="btn-deactivate"
+                          disabled={removingId === t._id}
+                          onClick={() => deleteTeam(t)}
+                        >
+                          {removingId === t._id ? "Deleting…" : "Delete"}
+                        </button>
+                      </>
                     )}
                   </td>
                 </tr>

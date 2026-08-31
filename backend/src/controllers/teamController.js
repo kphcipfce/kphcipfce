@@ -1,6 +1,8 @@
 import Team from "../models/Team.js";
 import Member from "../models/Member.js";
 import District from "../models/District.js";
+import SocialMobilizerPlan from "../models/SocialMobilizerPlan.js";
+import ActivityRecord from "../models/ActivityRecord.js";
 import { logAction } from "../middleware/audit.js";
 
 export async function listTeams(req, res) {
@@ -63,4 +65,20 @@ export async function updateTeam(req, res) {
   await team.save();
   await logAction(req.user._id, "update", "Team", team._id, req.body);
   res.json(team);
+}
+
+export async function deleteTeam(req, res) {
+  const team = await Team.findById(req.params.id);
+  if (!team) return res.status(404).json({ error: "Not found" });
+
+  const inPlan = await SocialMobilizerPlan.exists({ teams: team._id });
+  if (inPlan) return res.status(400).json({ error: "Cannot delete a team assigned to a plan — remove the plan first" });
+
+  const hasActivities = await ActivityRecord.exists({ team: team._id });
+  if (hasActivities) return res.status(400).json({ error: "Cannot delete a team with activity records" });
+
+  await Member.updateMany({ team: team._id }, { team: null });
+  await team.deleteOne();
+  await logAction(req.user._id, "delete", "Team", team._id, { name: team.name });
+  res.status(204).end();
 }

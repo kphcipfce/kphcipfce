@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import Member from "../models/Member.js";
+import CoordinatorPlan from "../models/CoordinatorPlan.js";
 import { logAction } from "../middleware/audit.js";
 
 // District Coordinators are now several accounts per district (not the old one-per-district
@@ -35,4 +36,16 @@ export async function updateDistrictCoordinator(req, res) {
   await coordinator.save();
   await logAction(req.user._id, "update", "Member", coordinator._id, req.body);
   res.json({ ...coordinator.toObject(), passwordHash: undefined });
+}
+
+export async function deleteDistrictCoordinator(req, res) {
+  const coordinator = await Member.findOne({ _id: req.params.id, role: "district_viewer" });
+  if (!coordinator) return res.status(404).json({ error: "Not found" });
+
+  const inUse = await CoordinatorPlan.exists({ coordinators: coordinator._id });
+  if (inUse) return res.status(400).json({ error: "Cannot delete a coordinator assigned to a plan — remove the plan first" });
+
+  await coordinator.deleteOne();
+  await logAction(req.user._id, "delete", "Member", coordinator._id, { name: coordinator.name, role: "district_viewer" });
+  res.status(204).end();
 }

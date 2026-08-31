@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import Member from "../models/Member.js";
 import Team from "../models/Team.js";
+import ActivityRecord from "../models/ActivityRecord.js";
 import { logAction } from "../middleware/audit.js";
 
 // Super Admin accounts aren't manageable through this list — surfacing one here would let
@@ -48,6 +49,21 @@ export async function updateMember(req, res) {
   await member.save();
   await logAction(req.user._id, "update", "Member", member._id, req.body);
   res.json({ ...member.toObject(), passwordHash: undefined });
+}
+
+export async function deleteMember(req, res) {
+  const member = await Member.findById(req.params.id);
+  if (!member) return res.status(404).json({ error: "Not found" });
+
+  const onTeam = await Team.exists({ memberIds: member._id });
+  if (onTeam) return res.status(400).json({ error: "Cannot delete a member who is paired into a team — remove them from the team first" });
+
+  const hasActivities = await ActivityRecord.exists({ submittedBy: member._id });
+  if (hasActivities) return res.status(400).json({ error: "Cannot delete a member with activity records — deactivate them instead" });
+
+  await member.deleteOne();
+  await logAction(req.user._id, "delete", "Member", member._id, { name: member.name, role: member.role });
+  res.status(204).end();
 }
 
 // FR-2.7: a member's own "My Team" view — their teammate's name/contact.
