@@ -8,18 +8,18 @@ import { logAction } from "../middleware/audit.js";
 // listed/created/updated here rather than folded into the Districts tab's old single-slot
 // viewer-password fields.
 export async function listDistrictCoordinators(req, res) {
-  const coordinators = await Member.find({ role: "district_viewer" }).select("-passwordHash").populate("district", "name").sort("name");
+  const coordinators = await Member.find({ role: "district_viewer" }).select("-passwordHash").populate("district", "name").sort("createdAt");
   res.json(coordinators);
 }
 
 export async function createDistrictCoordinator(req, res) {
-  const { name, email, password, district } = req.body;
+  const { name, email, phone, password, district } = req.body;
   if (!name || !email || !password || !district) {
     return res.status(400).json({ error: "name, email, password, district required" });
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const coordinator = await Member.create({ name, email: email.toLowerCase(), passwordHash, role: "district_viewer", district });
+  const coordinator = await Member.create({ name, email: email.toLowerCase(), phone, passwordHash, role: "district_viewer", district });
   await logAction(req.user._id, "create", "Member", coordinator._id, { name, role: "district_viewer", district });
   res.status(201).json({ ...coordinator.toObject(), passwordHash: undefined });
 }
@@ -28,8 +28,9 @@ export async function updateDistrictCoordinator(req, res) {
   const coordinator = await Member.findOne({ _id: req.params.id, role: "district_viewer" });
   if (!coordinator) return res.status(404).json({ error: "Not found" });
 
-  const { name, active, password } = req.body;
+  const { name, phone, active, password } = req.body;
   if (name !== undefined) coordinator.name = name;
+  if (phone !== undefined) coordinator.phone = phone;
   if (active !== undefined) coordinator.active = active;
   if (password) coordinator.passwordHash = await bcrypt.hash(password, 10);
 

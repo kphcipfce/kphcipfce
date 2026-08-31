@@ -134,7 +134,7 @@ function MembersTab() {
             <tr>
               <th>Name</th>
               <th>Email</th>
-              <th>Gender</th>
+              <th>Phone</th>
               <th>Role</th>
               <th>Team</th>
               <th>Password</th>
@@ -146,7 +146,7 @@ function MembersTab() {
               <tr key={m._id}>
                 <td>{m.name}</td>
                 <td>{m.email}</td>
-                <td>{m.gender ? m.gender[0].toUpperCase() + m.gender.slice(1) : "—"}</td>
+                <td>{m.phone || "—"}</td>
                 <td>{roleLabel(m.role)}</td>
                 <td>{m.team?.name || "—"}</td>
                 <td>
@@ -357,7 +357,7 @@ function DistrictCoordinatorsTab() {
   const { showToast } = useToast();
   const [coordinators, setCoordinators] = useState([]);
   const [districts, setDistricts] = useState([]);
-  const [form, setForm] = useState({ name: "", email: "", password: "", district: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", district: "" });
   const [editingPasswordId, setEditingPasswordId] = useState(null);
   const [newPassword, setNewPassword] = useState("");
   const [creating, setCreating] = useState(false);
@@ -375,7 +375,7 @@ function DistrictCoordinatorsTab() {
     setCreating(true);
     try {
       await api.post("/district-coordinators", form);
-      setForm({ name: "", email: "", password: "", district: "" });
+      setForm({ name: "", email: "", phone: "", password: "", district: "" });
       showToast("success", "District Coordinator created", "They can now sign in with their password.");
       load();
     } catch (err) {
@@ -424,6 +424,7 @@ function DistrictCoordinatorsTab() {
       <form className="card inline-form" onSubmit={createCoordinator}>
         <input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
         <input placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+        <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
         <input
           placeholder="Password"
           type="password"
@@ -451,6 +452,7 @@ function DistrictCoordinatorsTab() {
             <tr>
               <th>Name</th>
               <th>Email</th>
+              <th>Phone</th>
               <th>District</th>
               <th>Password</th>
               <th>Actions</th>
@@ -461,6 +463,7 @@ function DistrictCoordinatorsTab() {
               <tr key={m._id}>
                 <td>{m.name}</td>
                 <td>{m.email}</td>
+                <td>{m.phone || "—"}</td>
                 <td>{m.district?.name || "—"}</td>
                 <td>
                   {editingPasswordId === m._id ? (

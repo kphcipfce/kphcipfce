@@ -12,7 +12,7 @@ export async function listMembers(req, res) {
   const members = await Member.find({ role: { $nin: ["super_admin", "district_viewer", "grm_focal", "executive"] } })
     .select("-passwordHash")
     .populate("team")
-    .sort("name");
+    .sort("createdAt");
   res.json(members);
 }
 
