@@ -553,7 +553,7 @@ function TeamsTab() {
     e.preventDefault();
     setCreating(true);
     try {
-      await api.post("/teams", { name: form.name, memberIds: [form.memberA, form.memberB], district: form.district });
+      await api.post("/teams", { name: form.name, memberIds: [form.memberA, form.memberB].filter(Boolean), district: form.district });
       setForm({ ...form, name: "", memberA: "", memberB: "", district: "" });
       showToast("success", "Team created", "The team is ready to submit activities.");
       load();
@@ -566,13 +566,13 @@ function TeamsTab() {
 
   function startEdit(t) {
     setEditingId(t._id);
-    setEditForm({ memberA: t.memberIds[0]._id, memberB: t.memberIds[1]._id, district: t.district?._id || "" });
+    setEditForm({ memberA: t.memberIds[0]?._id || "", memberB: t.memberIds[1]?._id || "", district: t.district?._id || "" });
   }
 
   async function saveEdit(t) {
     setSavingEdit(true);
     try {
-      await api.patch(`/teams/${t._id}`, { memberIds: [editForm.memberA, editForm.memberB], district: editForm.district });
+      await api.patch(`/teams/${t._id}`, { memberIds: [editForm.memberA, editForm.memberB].filter(Boolean), district: editForm.district });
       setEditingId(null);
       showToast("success", "Team updated", "Membership changes saved.");
       load();
@@ -611,8 +611,8 @@ function TeamsTab() {
               </option>
             ))}
         </select>
-        <select value={form.memberB} onChange={(e) => setForm({ ...form, memberB: e.target.value })} required>
-          <option value="">Social Mobilizer 2</option>
+        <select value={form.memberB} onChange={(e) => setForm({ ...form, memberB: e.target.value })}>
+          <option value="">Social Mobilizer 2 (optional)</option>
           {unassigned
             .filter((m) => m._id !== form.memberA)
             .map((m) => (
@@ -675,6 +675,7 @@ function TeamsTab() {
                             ))}
                         </select>
                         <select value={editForm.memberB} onChange={(e) => setEditForm({ ...editForm, memberB: e.target.value })}>
+                          <option value="">— None —</option>
                           {eligibleMembers
                             .filter((m) => m._id !== editForm.memberA)
                             .map((m) => (

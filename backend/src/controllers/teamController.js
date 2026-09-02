@@ -10,23 +10,24 @@ export async function listTeams(req, res) {
   res.json(teams);
 }
 
-// FR-1.2a: a team is exactly two members, paired at creation time.
+// FR-1.2a: a team is normally two members, paired at creation time — but a second social
+// mobilizer isn't always available, so 1 is also allowed.
 export async function createTeam(req, res) {
   const { name, memberIds, district } = req.body;
-  if (!name || !Array.isArray(memberIds) || memberIds.length !== 2) {
-    return res.status(400).json({ error: "name and exactly 2 social mobilizers required" });
+  if (!name || !Array.isArray(memberIds) || memberIds.length < 1 || memberIds.length > 2) {
+    return res.status(400).json({ error: "name and 1 or 2 social mobilizers required" });
   }
   if (!district) return res.status(400).json({ error: "district required" });
   const districtDoc = await District.findById(district);
   if (!districtDoc) return res.status(400).json({ error: "District not found" });
 
   const members = await Member.find({ _id: { $in: memberIds } });
-  if (members.length !== 2) return res.status(400).json({ error: "One or both social mobilizers not found" });
+  if (members.length !== memberIds.length) return res.status(400).json({ error: "One or more social mobilizers not found" });
   if (members.some((m) => m.role !== "member")) {
     return res.status(400).json({ error: "Only social mobilizers can be paired into a team" });
   }
   if (members.some((m) => m.team)) {
-    return res.status(400).json({ error: "One or both social mobilizers already belong to a team" });
+    return res.status(400).json({ error: "One or more social mobilizers already belong to a team" });
   }
 
   const team = await Team.create({ name, memberIds, district });
@@ -49,11 +50,11 @@ export async function updateTeam(req, res) {
   }
 
   if (memberIds !== undefined) {
-    if (!Array.isArray(memberIds) || memberIds.length !== 2) {
-      return res.status(400).json({ error: "Exactly 2 social mobilizers required" });
+    if (!Array.isArray(memberIds) || memberIds.length < 1 || memberIds.length > 2) {
+      return res.status(400).json({ error: "1 or 2 social mobilizers required" });
     }
     const members = await Member.find({ _id: { $in: memberIds } });
-    if (members.length !== 2) return res.status(400).json({ error: "One or both social mobilizers not found" });
+    if (members.length !== memberIds.length) return res.status(400).json({ error: "One or more social mobilizers not found" });
     if (members.some((m) => m.role !== "member")) {
       return res.status(400).json({ error: "Only social mobilizers can be paired into a team" });
     }
