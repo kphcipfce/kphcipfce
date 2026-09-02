@@ -26,7 +26,7 @@ export async function createMember(req, res) {
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const member = await Member.create({ name, email: email.toLowerCase(), phone, passwordHash, gender, role });
+  const member = await Member.create({ name, email: email.toLowerCase(), phone, passwordHash, password, gender, role });
   await logAction(req.user._id, "create", "Member", member._id, { name });
   res.status(201).json({ ...member.toObject(), passwordHash: undefined });
 }
@@ -44,7 +44,10 @@ export async function updateMember(req, res) {
   if (active !== undefined) member.active = active;
   if (role !== undefined) member.role = role;
   if (gender !== undefined) member.gender = gender;
-  if (password) member.passwordHash = await bcrypt.hash(password, 10);
+  if (password) {
+    member.passwordHash = await bcrypt.hash(password, 10);
+    member.password = password;
+  }
 
   await member.save();
   await logAction(req.user._id, "update", "Member", member._id, req.body);

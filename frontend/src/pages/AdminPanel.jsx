@@ -90,9 +90,12 @@ function MembersTab() {
     }
   }
 
-  function togglePasswordEdit(id) {
-    setNewPassword("");
-    setEditingPasswordId((current) => (current === id ? null : id));
+  function togglePasswordEdit(m) {
+    setEditingPasswordId((current) => {
+      if (current === m._id) return null;
+      setNewPassword(m.password || "");
+      return m._id;
+    });
   }
 
   async function savePassword(id) {
@@ -101,7 +104,6 @@ function MembersTab() {
     try {
       await api.patch(`/members/${id}`, { password: newPassword });
       setEditingPasswordId(null);
-      setNewPassword("");
       showToast("success", "Password updated", "The social mobilizer can sign in with the new password.");
     } catch (err) {
       showToast("error", err.response?.data?.error || "Failed to update password");
@@ -153,7 +155,7 @@ function MembersTab() {
                   {editingPasswordId === m._id ? (
                     <div className="password-edit">
                       <input
-                        type="password"
+                        type="text"
                         placeholder="New password"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
@@ -171,7 +173,7 @@ function MembersTab() {
                       <button
                         type="button"
                         className="icon-btn"
-                        onClick={() => togglePasswordEdit(m._id)}
+                        onClick={() => togglePasswordEdit(m)}
                         aria-label={`Close password editor for ${m.name}`}
                       >
                         <EyeOffIcon />
@@ -181,7 +183,7 @@ function MembersTab() {
                     <button
                       type="button"
                       className="icon-btn"
-                      onClick={() => togglePasswordEdit(m._id)}
+                      onClick={() => togglePasswordEdit(m)}
                       aria-label={`Edit ${m.name}'s password`}
                     >
                       <EyeIcon />
