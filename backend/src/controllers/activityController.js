@@ -9,6 +9,7 @@ import AttendanceEntry from "../models/AttendanceEntry.js";
 import ImageMetadata from "../models/ImageMetadata.js";
 import { logAction } from "../middleware/audit.js";
 import cloudinary from "../config/cloudinary.js";
+import { isWeekExpired } from "../utils/weekExpiry.js";
 
 function checksumBuffer(buf) {
   return crypto.createHash("sha256").update(buf).digest("hex");
@@ -103,6 +104,9 @@ export async function createActivity(req, res) {
   }
   const weekEntry = planDoc.weeks.id(planWeek);
   if (!weekEntry) return res.status(400).json({ error: "Invalid week for this plan" });
+  if (isWeekExpired(weekEntry.date)) {
+    return res.status(409).json({ error: "This week's date has passed — it must be submitted on its assigned date" });
+  }
 
   const attendees = Array.isArray(attendeeIds) ? attendeeIds : attendeeIds ? [attendeeIds] : [req.user._id];
 

@@ -3,6 +3,7 @@ import Team from "../models/Team.js";
 import ActivityRecord from "../models/ActivityRecord.js";
 import AttendanceEntry from "../models/AttendanceEntry.js";
 import { logAction } from "../middleware/audit.js";
+import { isWeekExpired } from "../utils/weekExpiry.js";
 
 // Same pattern as coordinatorPlanController — Super Admin sees every plan in full (for
 // oversight). A member sees only plans assigned to their own team, oldest-first, with occupied
@@ -33,7 +34,7 @@ export async function listSocialMobilizerPlans(req, res) {
   const occupiedWeekIds = new Set(occupied.map((a) => String(a.planWeek)));
 
   for (const plan of plans) {
-    plan.weeks = plan.weeks.filter((w) => !occupiedWeekIds.has(String(w._id)));
+    plan.weeks = plan.weeks.filter((w) => !occupiedWeekIds.has(String(w._id)) && !isWeekExpired(w.date));
   }
   res.json(plans);
 }

@@ -2,6 +2,7 @@ import CoordinatorPlan from "../models/CoordinatorPlan.js";
 import Member from "../models/Member.js";
 import CoordinatorActivityRecord from "../models/CoordinatorActivityRecord.js";
 import { logAction } from "../middleware/audit.js";
+import { isWeekExpired } from "../utils/weekExpiry.js";
 
 // Super Admin sees every plan in full (for oversight — every week, regardless of status).
 // A district_viewer sees only plans assigned to their own coordinator account (a plan can be
@@ -29,7 +30,7 @@ export async function listCoordinatorPlans(req, res) {
   const occupiedWeekIds = new Set(occupied.map((a) => String(a.planWeek)));
 
   for (const plan of plans) {
-    plan.weeks = plan.weeks.filter((w) => !occupiedWeekIds.has(String(w._id)));
+    plan.weeks = plan.weeks.filter((w) => !occupiedWeekIds.has(String(w._id)) && !isWeekExpired(w.date));
   }
   res.json(plans);
 }

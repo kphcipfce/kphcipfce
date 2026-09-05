@@ -7,6 +7,7 @@ import Facility from "../models/Facility.js";
 import ImageMetadata from "../models/ImageMetadata.js";
 import { logAction } from "../middleware/audit.js";
 import cloudinary from "../config/cloudinary.js";
+import { isWeekExpired } from "../utils/weekExpiry.js";
 
 function checksumBuffer(buf) {
   return crypto.createHash("sha256").update(buf).digest("hex");
@@ -97,6 +98,9 @@ export async function createCoordinatorActivity(req, res) {
   }
   const weekEntry = planDoc.weeks.id(planWeek);
   if (!weekEntry) return res.status(400).json({ error: "Invalid week for this plan" });
+  if (isWeekExpired(weekEntry.date)) {
+    return res.status(409).json({ error: "This week's date has passed — it must be submitted on its assigned date" });
+  }
 
   // Mirrors the dropdown filtering in listCoordinatorPlans: a week that's already submitted,
   // verified, or flagged is occupied for everyone the plan is shared with — this blocks a

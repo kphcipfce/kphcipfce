@@ -2,6 +2,7 @@ import GrmPlan from "../models/GrmPlan.js";
 import District from "../models/District.js";
 import GrmActivityRecord from "../models/GrmActivityRecord.js";
 import { logAction } from "../middleware/audit.js";
+import { isWeekExpired } from "../utils/weekExpiry.js";
 
 // Same pattern as coordinatorPlanController — Super Admin sees every plan in full; a
 // grm_focal account sees only plans assigned to their own district, oldest-first, with
@@ -26,7 +27,7 @@ export async function listGrmPlans(req, res) {
   const occupiedWeekIds = new Set(occupied.map((a) => String(a.planWeek)));
 
   for (const plan of plans) {
-    plan.weeks = plan.weeks.filter((w) => !occupiedWeekIds.has(String(w._id)));
+    plan.weeks = plan.weeks.filter((w) => !occupiedWeekIds.has(String(w._id)) && !isWeekExpired(w.date));
   }
   res.json(plans);
 }
