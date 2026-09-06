@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import Spinner from "../components/Spinner";
+import { EyeIcon, EyeOffIcon } from "../components/icons.jsx";
 import logo from "../assets/logohcip.png";
 
 export default function Login() {
@@ -11,6 +12,7 @@ export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
 
   // Reaching /login while already signed in (browser back button, a stale bookmark, typing
@@ -44,7 +46,22 @@ export default function Login() {
         </label>
         <label>
           Password
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <div className="password-field">
+            <input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              className="icon-btn password-field-toggle"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+            </button>
+          </div>
         </label>
         <button type="submit" disabled={busy} className={busy ? "btn-loading" : ""}>
           <span className="btn-label">Sign in</span>
