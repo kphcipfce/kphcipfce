@@ -6,6 +6,7 @@ import { useToast } from "../context/ToastContext";
 import Spinner from "../components/Spinner";
 import SubmissionSuccess from "../components/SubmissionSuccess";
 import { CameraIcon } from "../components/icons";
+import { compressImage } from "../utils/compressImage";
 
 // Only one activity type exists for GRM Focal Persons, unlike the District Coordinator's two —
 // no dropdown needed, it's fixed.
@@ -74,12 +75,13 @@ export default function MyGrmActivities() {
   );
   const selectedWeek = weekOptions.find((w) => w.key === selectedWeekKey);
 
-  function addPhotos(e) {
+  async function addPhotos(e) {
     // Capture the files before clearing the input — by the time React calls the
     // setPhotos updater, e.target.files would already be empty otherwise.
     const newFiles = Array.from(e.target.files);
     e.target.value = ""; // lets the same camera/file be picked again right after
-    setPhotos((prev) => [...prev, ...newFiles]);
+    const compressed = await Promise.all(newFiles.map((f) => compressImage(f).catch(() => f)));
+    setPhotos((prev) => [...prev, ...compressed]);
   }
 
   function removePhoto(index) {
