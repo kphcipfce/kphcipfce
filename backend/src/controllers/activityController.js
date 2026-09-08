@@ -131,10 +131,6 @@ export async function createActivity(req, res) {
 
   const submittedAt = new Date();
   const dateTime = new Date(weekEntry.date);
-  if (time) {
-    const [hours, minutes] = time.split(":").map(Number);
-    dateTime.setHours(hours || 0, minutes || 0, 0, 0);
-  }
 
   const activity = await ActivityRecord.create({
     team: teamId,

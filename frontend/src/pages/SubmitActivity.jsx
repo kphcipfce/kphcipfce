@@ -20,20 +20,12 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-function pad(n) {
-  return String(n).padStart(2, "0");
-}
-
 export default function SubmitActivity() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [teammate, setTeammate] = useState(null);
   const [facilities, setFacilities] = useState(null); // null = still loading
   const [plans, setPlans] = useState(null); // null = still loading, [] = loaded but none assigned
-  const [time, setTime] = useState(() => {
-    const d = new Date();
-    return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  });
   const [facility, setFacility] = useState("");
   const [activityType, setActivityType] = useState(ACTIVITY_TYPES[0]);
   const [attendees, setAttendees] = useState([user.id]);
@@ -136,7 +128,6 @@ export default function SubmitActivity() {
       });
 
       const form = new FormData();
-      form.append("time", time);
       form.append("activityType", activityType);
       form.append("facility", facility);
       form.append("plan", selectedWeek.planId);
@@ -280,11 +271,6 @@ export default function SubmitActivity() {
           </select>
         </label>
         {selectedWeek && <p>Planned: {new Date(selectedWeek.date).toLocaleDateString()}</p>}
-
-        <label>
-          Time
-          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
-        </label>
 
         <label>
           Planned Activity

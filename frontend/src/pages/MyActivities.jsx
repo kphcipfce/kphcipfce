@@ -15,19 +15,11 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-function pad(n) {
-  return String(n).padStart(2, "0");
-}
-
 export default function MyActivities() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [facilities, setFacilities] = useState(null); // null = still loading
   const [plans, setPlans] = useState(null); // null = still loading, [] = loaded but none assigned
-  const [time, setTime] = useState(() => {
-    const d = new Date();
-    return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  });
   const [facility, setFacility] = useState("");
   const [activityType, setActivityType] = useState(ACTIVITY_TYPES[0]);
   const [isRefresher, setIsRefresher] = useState(false);
@@ -107,7 +99,6 @@ export default function MyActivities() {
       });
 
       const form = new FormData();
-      form.append("time", time);
       form.append("activityType", activityType);
       form.append("facility", facility);
       form.append("isRefresher", isRefresher);
@@ -227,11 +218,6 @@ export default function MyActivities() {
           </select>
         </label>
         {selectedWeek && <p>Planned: {new Date(selectedWeek.date).toLocaleDateString()}</p>}
-
-        <label>
-          Time
-          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
-        </label>
 
         <label>
           Planned Activity
