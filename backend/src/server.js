@@ -18,6 +18,8 @@ import grmPlanRoutes from "./routes/grmPlanRoutes.js";
 import grmActivityRoutes from "./routes/grmActivityRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import auditRoutes from "./routes/auditRoutes.js";
+import monitoringPlanRoutes from "./routes/monitoringPlanRoutes.js";
+import monitoringVisitRoutes from "./routes/monitoringVisitRoutes.js";
 
 const app = express();
 
@@ -39,6 +41,8 @@ app.use("/api/grm-plans", grmPlanRoutes);
 app.use("/api/grm-activities", grmActivityRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/audit-logs", auditRoutes);
+app.use("/api/monitoring-plans", monitoringPlanRoutes);
+app.use("/api/monitoring-visits", monitoringVisitRoutes);
 
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 

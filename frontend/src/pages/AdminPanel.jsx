@@ -13,6 +13,7 @@ const TABS = [
   "District Coordinators",
   "Mobilizer Plans",
   "Coordinator Plans",
+  "Monitoring Visit Plans",
   "GRM Plans",
   "Executive Officials",
   "Overview",
@@ -38,6 +39,7 @@ export default function AdminPanel() {
       {tab === "District Coordinators" && <DistrictCoordinatorsTab />}
       {tab === "Mobilizer Plans" && <MobilizerPlansTab />}
       {tab === "Coordinator Plans" && <CoordinatorPlansTab />}
+      {tab === "Monitoring Visit Plans" && <MonitoringVisitPlansTab />}
       {tab === "GRM Plans" && <GrmPlansTab />}
       {tab === "Executive Officials" && <ExecutiveOfficialsTab />}
       {tab === "Overview" && <OverviewTab />}
@@ -1578,3 +1580,311 @@ function AuditLogTab() {
     </div>
   );
 }
+
+function MonitoringVisitPlansTab() {
+  const { showToast } = useToast();
+  const now = new Date();
+  const [plans, setPlans] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [members, setMembers] = useState([]);
+  const [coordinators, setCoordinators] = useState([]);
+
+  const [districtId, setDistrictId] = useState("");
+  const [targetMobilizerId, setTargetMobilizerId] = useState("");
+  const [targetMobilizerId2, setTargetMobilizerId2] = useState("");
+  const [coordinatorId, setCoordinatorId] = useState("");
+
+  const [form, setForm] = useState({
+    month: now.getMonth() + 1,
+    year: now.getFullYear(),
+    weeks: [emptyWeek(), emptyWeek(), emptyWeek(), emptyWeek()],
+  });
+  const [creating, setCreating] = useState(false);
+  const [removingId, setRemovingId] = useState(null);
+
+  function load() {
+    api.get("/monitoring-plans").then((res) => setPlans(res.data));
+    api.get("/districts").then((res) => setDistricts(res.data));
+    api.get("/members").then((res) => setMembers(res.data));
+    api.get("/district-coordinators").then((res) => setCoordinators(res.data));
+  }
+  useEffect(load, []);
+
+  const filteredMobilizers = members.filter(
+    (m) =>
+      m.role === "member" &&
+      (String(m.district?._id || m.district) === String(districtId) ||
+        String(m.team?.district) === String(districtId))
+  );
+
+  const filteredCoordinators = coordinators.filter(
+    (c) => String(c.district?._id || c.district) === String(districtId)
+  );
+
+  function updateWeek(i, field, value) {
+    setForm((f) => ({
+      ...f,
+      weeks: f.weeks.map((w, idx) => (idx === i ? { ...w, [field]: value } : w)),
+    }));
+  }
+
+  function addWeek() {
+    setForm((f) => ({ ...f, weeks: [...f.weeks, emptyWeek()] }));
+  }
+
+  function removeWeek(i) {
+    setForm((f) => ({ ...f, weeks: f.weeks.filter((_, idx) => idx !== i) }));
+  }
+
+  async function createPlan(e) {
+    e.preventDefault();
+    if (!districtId || !targetMobilizerId || !coordinatorId) {
+      showToast("error", "District, Target Social Mobilizer 1, and District Coordinator are required");
+      return;
+    }
+    setCreating(true);
+    try {
+      await api.post("/monitoring-plans", {
+        month: Number(form.month),
+        year: Number(form.year),
+        weeks: form.weeks,
+        district: districtId,
+        targetMobilizer: targetMobilizerId,
+        targetMobilizer2: targetMobilizerId2 || null,
+        coordinator: coordinatorId,
+      });
+      setForm({
+        month: now.getMonth() + 1,
+        year: now.getFullYear(),
+        weeks: [emptyWeek(), emptyWeek(), emptyWeek(), emptyWeek()],
+      });
+      setDistrictId("");
+      setTargetMobilizerId("");
+      setTargetMobilizerId2("");
+      setCoordinatorId("");
+      showToast("success", "Monitoring Visit Plan created", "Assigned coordinator can now submit monitoring visit checklists.");
+      load();
+    } catch (err) {
+      showToast("error", err.response?.data?.error || "Failed to create monitoring plan");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function removePlan(id, label) {
+    if (!confirm(`Delete the ${label} monitoring plan? This cannot be undone.`)) return;
+    setRemovingId(id);
+    try {
+      await api.delete(`/monitoring-plans/${id}`);
+      showToast("success", "Monitoring Plan removed");
+      load();
+    } catch (err) {
+      showToast("error", err.response?.data?.error || "Failed to delete monitoring plan");
+    } finally {
+      setRemovingId(null);
+    }
+  }
+
+  return (
+    <div>
+      <form className="card" onSubmit={createPlan}>
+        <div className="date-time-row">
+          <label>
+            Month
+            <select value={form.month} onChange={(e) => setForm({ ...form, month: e.target.value })}>
+              {MONTH_NAMES.map((m, i) => (
+                <option key={m} value={i + 1}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Year
+            <input type="number" value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })} required />
+          </label>
+        </div>
+
+        <div className="form-grid" style={{ marginTop: "12px" }}>
+          <label>
+            District *
+            <select
+              value={districtId}
+              onChange={(e) => {
+                setDistrictId(e.target.value);
+                setTargetMobilizerId("");
+                setTargetMobilizerId2("");
+                setCoordinatorId("");
+              }}
+              required
+            >
+              <option value="">-- Select District --</option>
+              {districts.map((d) => (
+                <option key={d._id} value={d._id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Target Social Mobilizer 1 *
+            <select
+              value={targetMobilizerId}
+              onChange={(e) => setTargetMobilizerId(e.target.value)}
+              disabled={!districtId}
+              required
+            >
+              <option value="">-- Select Mobilizer 1 --</option>
+              {filteredMobilizers.map((m) => (
+                <option key={m._id} value={m._id}>
+                  {m.name} ({m.email})
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Target Social Mobilizer 2 (Optional)
+            <select
+              value={targetMobilizerId2}
+              onChange={(e) => setTargetMobilizerId2(e.target.value)}
+              disabled={!districtId}
+            >
+              <option value="">-- None (Optional) --</option>
+              {filteredMobilizers
+                .filter((m) => m._id !== targetMobilizerId)
+                .map((m) => (
+                  <option key={m._id} value={m._id}>
+                    {m.name} ({m.email})
+                  </option>
+                ))}
+            </select>
+          </label>
+
+          <label>
+            Assign District Coordinator *
+            <select
+              value={coordinatorId}
+              onChange={(e) => setCoordinatorId(e.target.value)}
+              disabled={!districtId}
+              required
+            >
+              <option value="">-- Select Coordinator --</option>
+              {filteredCoordinators.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.name} ({c.email})
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <fieldset style={{ marginTop: "16px" }}>
+          <legend>Weeks</legend>
+          {form.weeks.map((w, i) => (
+            <div className="date-time-row" key={i}>
+              <label>
+                Week
+                <select value={w.weekNumber} onChange={(e) => updateWeek(i, "weekNumber", e.target.value)} required>
+                  <option value="" disabled>
+                    Select week
+                  </option>
+                  {WEEK_NUMBERS.map((n) => (
+                    <option key={n} value={n}>
+                      Week {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Date
+                <input type="date" value={w.date} onChange={(e) => updateWeek(i, "date", e.target.value)} required />
+              </label>
+              <label>
+                Day
+                <select value={w.dayOfWeek} onChange={(e) => updateWeek(i, "dayOfWeek", e.target.value)} required>
+                  <option value="" disabled>
+                    Select day
+                  </option>
+                  {WEEKDAYS.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {form.weeks.length > 1 && (
+                <button type="button" className="btn-delete-icon" onClick={() => removeWeek(i)} aria-label="Remove week">
+                  <MdCancel />
+                </button>
+              )}
+            </div>
+          ))}
+          <button type="button" onClick={addWeek}>
+            + Add week
+          </button>
+        </fieldset>
+
+        <button type="submit" disabled={creating} className={creating ? "btn-loading" : ""} style={{ marginTop: "16px" }}>
+          <span className="btn-label">Create Monitoring Visit Plan</span>
+          {creating && <span className="btn-spinner" />}
+        </button>
+      </form>
+
+      <div className="table-scroll">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Month/Year</th>
+              <th>District</th>
+              <th>Target Mobilizer(s)</th>
+              <th>Assigned Coordinator</th>
+              <th>Weeks</th>
+              <th>Created By</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {plans.map((p) => (
+              <tr key={p._id}>
+                <td>
+                  {MONTH_NAMES[p.month - 1]} {p.year}
+                </td>
+                <td>{p.district?.name}</td>
+                <td>
+                  {p.targetMobilizer?.name}
+                  {p.targetMobilizer2 ? ` & ${p.targetMobilizer2.name}` : ""}
+                </td>
+                <td>{p.coordinator?.name}</td>
+                <td>
+                  {p.weeks.map((w) => (
+                    <div key={w._id}>
+                      Week {w.weekNumber}: {new Date(w.date).toLocaleDateString("en-GB")} ({w.dayOfWeek})
+                    </div>
+                  ))}
+                </td>
+                <td>{p.createdBy?.name}</td>
+                <td>
+                  <button
+                    type="button"
+                    disabled={removingId === p._id}
+                    className={`btn-delete-icon ${removingId === p._id ? "btn-loading" : ""}`}
+                    onClick={() => removePlan(p._id, `${MONTH_NAMES[p.month - 1]} ${p.year}`)}
+                    aria-label={`Remove ${MONTH_NAMES[p.month - 1]} ${p.year} plan`}
+                  >
+                    <span className="btn-label">
+                      <MdCancel />
+                    </span>
+                    {removingId === p._id && <span className="btn-spinner" />}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+

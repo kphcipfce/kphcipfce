@@ -21,6 +21,7 @@ const grmActivityRecordSchema = new mongoose.Schema(
     activityType: { type: String, enum: ["GRM capacity building of PCMC & HMC"], required: true },
     facility: { type: mongoose.Schema.Types.ObjectId, ref: "Facility", required: true },
     isRefresher: { type: Boolean, default: false },
+    catchmentArea: { type: String, required: true, trim: true },
     plannedActivity: { type: String, required: true, trim: true },
     responsiblePerson: { type: String, required: true, trim: true },
     targetGroup: { type: String, required: true, trim: true },

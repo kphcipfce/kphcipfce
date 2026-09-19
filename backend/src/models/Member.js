@@ -10,7 +10,7 @@ const memberSchema = new mongoose.Schema(
     // Plaintext mirror of passwordHash, same pattern as District.grmFocalPassword — lets the
     // Admin Panel show a social mobilizer's current password again, not just set a new one.
     password: { type: String, default: null },
-    role: { type: String, enum: ["member", "super_admin", "district_viewer", "grm_focal", "executive"], default: "member" },
+    role: { type: String, enum: ["member", "super_admin", "district_viewer", "grm_focal", "executive", "tl_reviewer"], default: "member" },
     gender: { type: String, enum: ["male", "female"], default: null },
     team: { type: mongoose.Schema.Types.ObjectId, ref: "Team", default: null },
     // Only set for district_viewer/grm_focal accounts — scopes them to one district.

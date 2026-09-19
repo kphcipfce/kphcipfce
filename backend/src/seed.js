@@ -14,6 +14,8 @@ import CoordinatorPlan from "./models/CoordinatorPlan.js";
 import CoordinatorActivityRecord from "./models/CoordinatorActivityRecord.js";
 import GrmPlan from "./models/GrmPlan.js";
 import GrmActivityRecord from "./models/GrmActivityRecord.js";
+import MonitoringPlan from "./models/MonitoringPlan.js";
+import MonitoringVisit from "./models/MonitoringVisit.js";
 import { FACILITIES_BY_DISTRICT } from "./data/facilities.js";
 
 const PASSWORD = "12345";
@@ -50,6 +52,8 @@ async function seed() {
     CoordinatorActivityRecord.deleteMany({}),
     GrmPlan.deleteMany({}),
     GrmActivityRecord.deleteMany({}),
+    MonitoringPlan.deleteMany({}),
+    MonitoringVisit.deleteMany({}),
     Facility.deleteMany({}),
     Team.deleteMany({}),
     Member.deleteMany({}),
@@ -124,6 +128,20 @@ async function seed() {
     role: "super_admin",
   });
   console.log(`super_admin: super@gmail.com / ${SUPER_ADMIN_PASSWORD}`);
+
+  await Member.create({
+    name: "Mumtaz (TL Reviewer)",
+    email: "mumtaztl@gmail.com",
+    passwordHash,
+    role: "tl_reviewer",
+  });
+  await Member.create({
+    name: "Sanad (TL Reviewer)",
+    email: "sanadtl@gmail.com",
+    passwordHash,
+    role: "tl_reviewer",
+  });
+  console.log(`tl_reviewer: mumtaztl@gmail.com / ${PASSWORD}, sanadtl@gmail.com / ${PASSWORD}`);
 
   for (const name of districtNames) {
     const [p1, p2] = MEMBERS_BY_DISTRICT[name];

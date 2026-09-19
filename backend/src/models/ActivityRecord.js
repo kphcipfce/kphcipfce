@@ -17,6 +17,7 @@ const activityRecordSchema = new mongoose.Schema(
     dateTime: { type: Date, required: true },
     activityType: { type: String, required: true },
     facility: { type: mongoose.Schema.Types.ObjectId, ref: "Facility", required: true },
+    catchmentArea: { type: String, required: true, trim: true },
     plannedActivity: { type: String, required: true, trim: true },
     responsiblePerson: { type: String, required: true, trim: true },
     targetGroup: { type: String, required: true, trim: true },

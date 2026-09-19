@@ -2,7 +2,8 @@ import mongoose from "mongoose";
 
 const imageMetadataSchema = new mongoose.Schema(
   {
-    activityRecord: { type: mongoose.Schema.Types.ObjectId, ref: "ActivityRecord", required: true },
+    activityRecord: { type: mongoose.Schema.Types.ObjectId, ref: "ActivityRecord" },
+    monitoringVisit: { type: mongoose.Schema.Types.ObjectId, ref: "MonitoringVisit" },
     fileUrl: { type: String, required: true },
     uploadTimestamp: { type: Date, default: Date.now },
     exifTimestamp: { type: Date, default: null },

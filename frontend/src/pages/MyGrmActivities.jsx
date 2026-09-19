@@ -23,6 +23,7 @@ export default function MyGrmActivities() {
   const [facilities, setFacilities] = useState(null); // null = still loading
   const [plans, setPlans] = useState(null); // null = still loading, [] = loaded but none assigned
   const [facility, setFacility] = useState("");
+  const [catchmentArea, setCatchmentArea] = useState("");
   const [isRefresher, setIsRefresher] = useState(false);
   const [selectedWeekKey, setSelectedWeekKey] = useState("");
   const [plannedActivity, setPlannedActivity] = useState("");
@@ -103,6 +104,7 @@ export default function MyGrmActivities() {
       form.append("activityType", ACTIVITY_TYPE);
       form.append("facility", facility);
       form.append("isRefresher", isRefresher);
+      form.append("catchmentArea", catchmentArea);
       form.append("plan", selectedWeek.planId);
       form.append("planWeek", selectedWeek.weekId);
       form.append("plannedActivity", plannedActivity);
@@ -124,6 +126,7 @@ export default function MyGrmActivities() {
       });
       setJustSubmitted(true);
 
+      setCatchmentArea("");
       setPlannedActivity("");
       setMaleAttendees("0");
       setFemaleAttendees("0");
@@ -191,6 +194,11 @@ export default function MyGrmActivities() {
               </option>
             ))}
           </select>
+        </label>
+
+        <label>
+          Catchment Area / Location
+          <input value={catchmentArea} onChange={(e) => setCatchmentArea(e.target.value)} required />
         </label>
 
         <label>

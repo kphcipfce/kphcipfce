@@ -54,6 +54,7 @@ export async function createCoordinatorActivity(req, res) {
     gpsLong,
     facility,
     isRefresher,
+    catchmentArea,
     plannedActivity,
     responsiblePerson,
     targetGroup,
@@ -70,6 +71,7 @@ export async function createCoordinatorActivity(req, res) {
   if (
     !activityType ||
     !facility ||
+    !catchmentArea ||
     !plannedActivity ||
     !responsiblePerson ||
     !targetGroup ||
@@ -121,6 +123,7 @@ export async function createCoordinatorActivity(req, res) {
     activityType,
     facility,
     isRefresher: isRefresher === "true" || isRefresher === true,
+    catchmentArea,
     plannedActivity,
     responsiblePerson,
     targetGroup,

@@ -60,6 +60,7 @@ export default function ActivityDetail({ activityId, onClose, onStatusChanged, c
 
   const details = [
     ["Health Facility / Community", activity.facility ? `${activity.facility.name} (${activity.facility.category})` : ""],
+    activity.catchmentArea && ["Catchment Area / Location", activity.catchmentArea],
     ["Planned Activity", activity.plannedActivity],
     ["Responsible Person", activity.responsiblePerson],
     ["Target Group", activity.targetGroup],

@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import ActivityDetail from "../components/ActivityDetail";
 import CoordinatorActivityDetail from "../components/CoordinatorActivityDetail";
 import GrmActivityDetail from "../components/GrmActivityDetail";
+import MonitoringVisitDetail from "../components/MonitoringVisitDetail";
 import { IoMdDownload } from "react-icons/io";
 import { MdFileDownloadDone } from "react-icons/md";
 import { EyeIcon } from "../components/icons";
@@ -90,13 +91,16 @@ function MonitoringDashboard() {
   // A District Coordinator's own work is unrelated to GRM Focal Person activities — their
   // table stays hidden (and unfetched) for the same reason, just the other way around.
   const hideGrmTable = user.role === "district_viewer";
+  const hideMonitoringVisitsTable = user.role === "district_viewer";
   const [monitoring, setMonitoring] = useState(null);
   const [activities, setActivities] = useState([]);
   const [coordinatorActivities, setCoordinatorActivities] = useState([]);
   const [grmActivities, setGrmActivities] = useState([]);
+  const [monitoringVisits, setMonitoringVisits] = useState([]);
   const [openId, setOpenId] = useState(null);
   const [openCoordinatorId, setOpenCoordinatorId] = useState(null);
   const [openGrmId, setOpenGrmId] = useState(null);
+  const [openMonitoringVisit, setOpenMonitoringVisit] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [exportDone, setExportDone] = useState(false);
   const [exportingCoordinator, setExportingCoordinator] = useState(false);
@@ -105,7 +109,10 @@ function MonitoringDashboard() {
   const [exportDoneGrm, setExportDoneGrm] = useState(false);
 
   async function load() {
-    const requests = [api.get("/dashboard/monitoring").then((res) => setMonitoring(res.data))];
+    const requests = [
+      api.get("/dashboard/monitoring").then((res) => setMonitoring(res.data)),
+      api.get("/monitoring-visits").then((res) => setMonitoringVisits(res.data)),
+    ];
     if (!hideGrmTable) requests.push(api.get("/grm-activities").then((res) => setGrmActivities(res.data)));
     if (!isGrmFocal) {
       requests.push(
@@ -260,6 +267,87 @@ function MonitoringDashboard() {
             </div>
           </div>
 
+          {/* Overall Monitoring Visit Score (Average) Pie Chart */}
+          {!hideMonitoringVisitsTable && (() => {
+            const validVisits = (monitoringVisits || []).filter((v) => typeof v.scorePercentage === "number");
+            const avgScore = validVisits.length > 0
+              ? Math.round(validVisits.reduce((acc, v) => acc + v.scorePercentage, 0) / validVisits.length)
+              : null;
+
+            const highScores = validVisits.filter((v) => v.scorePercentage >= 80).length;
+            const modScores = validVisits.filter((v) => v.scorePercentage >= 60 && v.scorePercentage < 80).length;
+            const lowScores = validVisits.filter((v) => v.scorePercentage < 60).length;
+
+            const pieScoreData = validVisits.length > 0 ? [
+              { name: "Excellent / High (≥80%)", value: highScores, color: "#2e7d32" },
+              { name: "Satisfactory (60-79%)", value: modScores, color: "#ed6c02" },
+              { name: "Needs Improvement (<60%)", value: lowScores, color: "#d32f2f" },
+            ].filter((d) => d.value > 0) : [];
+
+            return (
+              <div className="card" style={{ marginTop: "1.25rem", padding: "1.25rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "1.1rem" }}>Overall Monitoring Visit Score (Average)</h3>
+                    <p style={{ margin: "4px 0 0 0", fontSize: "0.85rem", color: "var(--gray-600)" }}>
+                      Calculated across all submitted DCMO monitoring visit checklists ({validVisits.length} record{validVisits.length === 1 ? "" : "s"})
+                    </p>
+                  </div>
+                  {avgScore !== null && (
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "6px 16px",
+                        borderRadius: "999px",
+                        backgroundColor: avgScore >= 80 ? "rgba(46, 125, 50, 0.12)" : avgScore >= 60 ? "rgba(237, 108, 2, 0.12)" : "rgba(211, 47, 47, 0.12)",
+                        color: avgScore >= 80 ? "#2e7d32" : avgScore >= 60 ? "#ed6c02" : "#d32f2f",
+                        fontWeight: "bold",
+                        fontSize: "1.05rem",
+                      }}
+                    >
+                      <span>Average Score:</span>
+                      <span style={{ fontSize: "1.3rem" }}>{avgScore}%</span>
+                    </div>
+                  )}
+                </div>
+
+                {validVisits.length === 0 ? (
+                  <p style={{ color: "var(--gray-600)", textAlign: "center", margin: "2rem 0" }}>
+                    No monitoring visit checklist scores recorded yet.
+                  </p>
+                ) : (
+                  <div style={{ width: "100%", height: "260px" }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={pieScoreData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={55}
+                          outerRadius={95}
+                          paddingAngle={4}
+                          dataKey="value"
+                          nameKey="name"
+                        >
+                          {pieScoreData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(val, name) => [`${val} visit(s)`, name]}
+                          contentStyle={{ borderRadius: "8px", border: "1px solid #e2e8f0", fontSize: "12px" }}
+                        />
+                        <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "0.85rem" }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {!isGrmFocal && (
             <>
               <h3>Attendance rate</h3>
@@ -393,6 +481,105 @@ function MonitoringDashboard() {
         </>
       )}
 
+      {!hideMonitoringVisitsTable && monitoringVisits.length > 0 && (
+        <>
+          <h3>Reviewed Monitoring Visit Records</h3>
+          <div className="table-scroll">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>District</th>
+                  <th>Facility</th>
+                  <th>UC / Village</th>
+                  <th>District Coordinator</th>
+                  <th>Target Mobilizer</th>
+                  <th>Score %</th>
+                  <th>TL/DTL Reviewer</th>
+                  <th>Accepted/Complete</th>
+                  <th>Review</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monitoringVisits.map((v) => (
+                  <tr key={v._id}>
+                    <td>{new Date(v.dateTime).toLocaleDateString()}</td>
+                    <td>{v.district?.name}</td>
+                    <td>{v.facility?.name}</td>
+                    <td>{v.ucVillage}</td>
+                    <td>{v.coordinator?.name || v.dcmoName}</td>
+                    <td>
+                      {v.targetMobilizer?.name}
+                      {v.targetMobilizer2 ? ` & ${v.targetMobilizer2.name}` : ""}
+                    </td>
+                    <td>
+                      <span
+                        style={{
+                          fontWeight: "bold",
+                          color: v.scorePercentage >= 80 ? "#2e7d32" : v.scorePercentage >= 60 ? "#ed6c02" : "#d32f2f",
+                        }}
+                      >
+                        {v.scorePercentage}%
+                      </span>
+                    </td>
+                    <td>
+                      {v.reviews && v.reviews.length > 0 ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                          {v.reviews.map((r, i) => (
+                            <div key={i} style={{ whiteSpace: "nowrap" }}>
+                              {r.reviewerName}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        v.reviewerName || "—"
+                      )}
+                    </td>
+                    <td>
+                      {v.reviews && v.reviews.length > 0 ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                          {v.reviews.map((r, i) => (
+                            <div
+                              key={i}
+                              style={{
+                                fontWeight: "bold",
+                                color: r.acceptedComplete === "Yes" ? "#2e7d32" : "#d32f2f",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {r.acceptedComplete}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span
+                          style={{
+                            fontWeight: "bold",
+                            color: v.acceptedComplete === "Yes" ? "#2e7d32" : "#d32f2f",
+                          }}
+                        >
+                          {v.acceptedComplete || "—"}
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        onClick={() => setOpenMonitoringVisit(v)}
+                        aria-label="Preview monitoring visit record"
+                      >
+                        <EyeIcon />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
       {openId && <ActivityDetail activityId={openId} canModerate={canModerate} onClose={() => setOpenId(null)} onStatusChanged={load} />}
       {openCoordinatorId && (
         <CoordinatorActivityDetail
@@ -404,6 +591,9 @@ function MonitoringDashboard() {
       )}
       {openGrmId && (
         <GrmActivityDetail activityId={openGrmId} canModerate={canModerate} onClose={() => setOpenGrmId(null)} onStatusChanged={load} />
+      )}
+      {openMonitoringVisit && (
+        <MonitoringVisitDetail visit={openMonitoringVisit} onClose={() => setOpenMonitoringVisit(null)} />
       )}
     </div>
   );

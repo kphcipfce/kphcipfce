@@ -21,6 +21,7 @@ const coordinatorActivityRecordSchema = new mongoose.Schema(
     activityType: { type: String, enum: ["Environmental awareness & HCWM", "SEA/SH"], required: true },
     facility: { type: mongoose.Schema.Types.ObjectId, ref: "Facility", required: true },
     isRefresher: { type: Boolean, default: false },
+    catchmentArea: { type: String, required: true, trim: true },
     plannedActivity: { type: String, required: true, trim: true },
     responsiblePerson: { type: String, required: true, trim: true },
     targetGroup: { type: String, required: true, trim: true },

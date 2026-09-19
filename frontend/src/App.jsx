@@ -8,17 +8,18 @@ import SubmitActivity from "./pages/SubmitActivity";
 import MyTeam from "./pages/MyTeam";
 import MyActivities from "./pages/MyActivities";
 import MyGrmActivities from "./pages/MyGrmActivities";
+import MyMonitoringVisits from "./pages/MyMonitoringVisits";
+import TlReviewDashboard from "./pages/TlReviewDashboard";
 import Dashboard from "./pages/Dashboard";
 import AdminPanel from "./pages/AdminPanel";
 import ExecutiveDashboard from "./pages/ExecutiveDashboard";
 import "./index.css";
 
-// Every role lands on its own activities/submission page first, not the Dashboard — matches
-// the social mobilizer's existing "/submit" landing behavior.
 const LANDING_ROUTE_BY_ROLE = {
   member: "/submit",
   district_viewer: "/my-activities",
   grm_focal: "/my-grm-activities",
+  tl_reviewer: "/tl-review",
   executive: "/executive",
 };
 
@@ -66,6 +67,22 @@ export default function App() {
               element={
                 <ProtectedRoute roles={["grm_focal"]}>
                   <MyGrmActivities />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-monitoring-visits"
+              element={
+                <ProtectedRoute roles={["district_viewer"]}>
+                  <MyMonitoringVisits />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tl-review"
+              element={
+                <ProtectedRoute roles={["tl_reviewer", "super_admin"]}>
+                  <TlReviewDashboard />
                 </ProtectedRoute>
               }
             />

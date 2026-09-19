@@ -27,6 +27,7 @@ export default function SubmitActivity() {
   const [facilities, setFacilities] = useState(null); // null = still loading
   const [plans, setPlans] = useState(null); // null = still loading, [] = loaded but none assigned
   const [facility, setFacility] = useState("");
+  const [catchmentArea, setCatchmentArea] = useState("");
   const [activityType, setActivityType] = useState(ACTIVITY_TYPES[0]);
   const [attendees, setAttendees] = useState([user.id]);
   const [selectedWeekKey, setSelectedWeekKey] = useState("");
@@ -130,6 +131,7 @@ export default function SubmitActivity() {
       const form = new FormData();
       form.append("activityType", activityType);
       form.append("facility", facility);
+      form.append("catchmentArea", catchmentArea);
       form.append("plan", selectedWeek.planId);
       form.append("planWeek", selectedWeek.weekId);
       form.append("plannedActivity", plannedActivity);
@@ -152,6 +154,7 @@ export default function SubmitActivity() {
       });
       setJustSubmitted(true);
 
+      setCatchmentArea("");
       setPlannedActivity("");
       setMaleAttendees("0");
       setFemaleAttendees("0");
@@ -230,6 +233,11 @@ export default function SubmitActivity() {
               </option>
             ))}
           </select>
+        </label>
+
+        <label>
+          Catchment Area / Location
+          <input value={catchmentArea} onChange={(e) => setCatchmentArea(e.target.value)} required />
         </label>
 
         <label>

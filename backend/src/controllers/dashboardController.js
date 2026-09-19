@@ -6,6 +6,7 @@ import Team from "../models/Team.js";
 import Member from "../models/Member.js";
 import CoordinatorActivityRecord from "../models/CoordinatorActivityRecord.js";
 import GrmActivityRecord from "../models/GrmActivityRecord.js";
+import ImageMetadata from "../models/ImageMetadata.js";
 
 function buildMatch(req) {
   const match = {};
@@ -375,6 +376,14 @@ export async function exportFieldTracker(req, res) {
   ]);
   const allPresentMap = new Map(summary.map((s) => [String(s._id), s.anyAbsent === 0]));
 
+  const images = await ImageMetadata.find({ activityRecord: { $in: activities.map((a) => a._id) } }).lean();
+  const imageMap = new Map();
+  for (const img of images) {
+    const key = String(img.activityRecord);
+    if (!imageMap.has(key)) imageMap.set(key, []);
+    imageMap.get(key).push(img.fileUrl);
+  }
+
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("Field Tracker");
   sheet.columns = [
@@ -383,6 +392,7 @@ export async function exportFieldTracker(req, res) {
     { header: "Day", key: "day", width: 12 },
     { header: "District", key: "district", width: 14 },
     { header: "Health Facility / Community", key: "healthFacility", width: 28 },
+    { header: "Catchment Area / Location", key: "catchmentArea", width: 25 },
     { header: "Planned Activity", key: "plannedActivity", width: 28 },
     { header: "Responsible Person", key: "responsiblePerson", width: 20 },
     { header: "Target Group", key: "targetGroup", width: 20 },
@@ -390,12 +400,13 @@ export async function exportFieldTracker(req, res) {
     { header: "Status", key: "status", width: 16 },
     { header: "Remarks / Follow-up", key: "remarks", width: 28 },
     { header: "Approval", key: "approval", width: 14 },
+    { header: "Photo Link(s)", key: "photoLinks", width: 50 },
   ];
   sheet.getRow(1).eachCell((cell) => {
     cell.font = { bold: true };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC6D9B8" } };
   });
-  sheet.autoFilter = { from: "A1", to: "L1" };
+  sheet.autoFilter = { from: "A1", to: "N1" };
 
   for (const a of activities) {
     // Same rule as the dashboard's statusClassName: flagged always shown; a verified record
@@ -407,6 +418,7 @@ export async function exportFieldTracker(req, res) {
     else if (a.status === "verified" && allPresent === false) approval = "absent";
 
     const weekEntry = a.plan?.weeks?.find((w) => String(w._id) === String(a.planWeek));
+    const photoUrls = imageMap.get(String(a._id)) || [];
 
     const row = sheet.addRow({
       date: new Date(a.dateTime).toLocaleDateString("en-US"),
@@ -414,6 +426,7 @@ export async function exportFieldTracker(req, res) {
       day: weekEntry?.dayOfWeek ?? "",
       district: a.district?.name || "",
       healthFacility: a.facility?.name || "",
+      catchmentArea: a.catchmentArea || "",
       plannedActivity: a.plannedActivity,
       responsiblePerson: a.responsiblePerson,
       targetGroup: a.targetGroup,
@@ -421,6 +434,7 @@ export async function exportFieldTracker(req, res) {
       status: a.visitStatus,
       remarks: a.description || "",
       approval,
+      photoLinks: photoUrls.join("\n"),
     });
 
     const style = APPROVAL_STYLE[approval];
@@ -468,6 +482,14 @@ async function exportActivityTracker(req, res, Model, sheetTitle, filename) {
     .sort("-dateTime")
     .lean();
 
+  const images = await ImageMetadata.find({ activityRecord: { $in: activities.map((a) => a._id) } }).lean();
+  const imageMap = new Map();
+  for (const img of images) {
+    const key = String(img.activityRecord);
+    if (!imageMap.has(key)) imageMap.set(key, []);
+    imageMap.get(key).push(img.fileUrl);
+  }
+
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet(sheetTitle);
   sheet.columns = [
@@ -476,6 +498,7 @@ async function exportActivityTracker(req, res, Model, sheetTitle, filename) {
     { header: "Day", key: "day", width: 12 },
     { header: "District", key: "district", width: 14 },
     { header: "Health Facility / Community", key: "healthFacility", width: 28 },
+    { header: "Catchment Area / Location", key: "catchmentArea", width: 25 },
     { header: "Activity Type", key: "activityType", width: 26 },
     { header: "Refresher", key: "refresher", width: 12 },
     { header: "Planned Activity", key: "plannedActivity", width: 28 },
@@ -485,15 +508,17 @@ async function exportActivityTracker(req, res, Model, sheetTitle, filename) {
     { header: "Status", key: "status", width: 16 },
     { header: "Remarks / Follow-up", key: "remarks", width: 28 },
     { header: "Approval", key: "approval", width: 14 },
+    { header: "Photo Link(s)", key: "photoLinks", width: 50 },
   ];
   sheet.getRow(1).eachCell((cell) => {
     cell.font = { bold: true };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC6D9B8" } };
   });
-  sheet.autoFilter = { from: "A1", to: "N1" };
+  sheet.autoFilter = { from: "A1", to: "P1" };
 
   for (const a of activities) {
     const weekEntry = a.plan?.weeks?.find((w) => String(w._id) === String(a.planWeek));
+    const photoUrls = imageMap.get(String(a._id)) || [];
 
     let approval = "";
     if (a.status === "flagged") approval = "flagged";
@@ -505,6 +530,7 @@ async function exportActivityTracker(req, res, Model, sheetTitle, filename) {
       day: weekEntry?.dayOfWeek ?? "",
       district: a.district?.name || "",
       healthFacility: a.facility?.name || "",
+      catchmentArea: a.catchmentArea || "",
       activityType: a.activityType,
       refresher: a.isRefresher ? "Yes" : "No",
       plannedActivity: a.plannedActivity,
@@ -514,6 +540,7 @@ async function exportActivityTracker(req, res, Model, sheetTitle, filename) {
       status: a.visitStatus,
       remarks: a.description || "",
       approval,
+      photoLinks: photoUrls.join("\n"),
     });
 
     const style = APPROVAL_STYLE[approval];

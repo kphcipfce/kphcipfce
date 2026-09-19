@@ -54,6 +54,7 @@ export async function createActivity(req, res) {
     gpsLat,
     gpsLong,
     facility,
+    catchmentArea,
     plannedActivity,
     responsiblePerson,
     targetGroup,
@@ -70,6 +71,7 @@ export async function createActivity(req, res) {
   if (
     !activityType ||
     !facility ||
+    !catchmentArea ||
     !plannedActivity ||
     !responsiblePerson ||
     !targetGroup ||
@@ -139,6 +141,7 @@ export async function createActivity(req, res) {
     dateTime,
     activityType,
     facility,
+    catchmentArea,
     plannedActivity,
     responsiblePerson,
     targetGroup,
