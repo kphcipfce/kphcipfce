@@ -1274,8 +1274,18 @@ fieldset {
 .table-wrapper,
 .table-scroll {
   width: 100%;
-  overflow-x: auto;
+  max-height: 620px;
+  overflow: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+.table-wrapper thead th,
+.table-scroll thead th {
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 2;
+  box-shadow: 0 1px 0 var(--gray-100);
 }
 
 .table-wrapper table,
