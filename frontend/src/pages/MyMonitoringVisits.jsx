@@ -635,20 +635,38 @@ export default function MyMonitoringVisits() {
                   </div>
                   <div>
                     <label>Corrective Action Required?</label>
-                    <select value={correctiveActionRequired} onChange={(e) => setCorrectiveActionRequired(e.target.value)}>
+                    <select
+                      value={correctiveActionRequired}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setCorrectiveActionRequired(val);
+                        if (val !== "Yes") {
+                          setCorrectiveActionDetails("");
+                          setFollowUpBy("");
+                          setFollowUpDueDate("");
+                        }
+                      }}
+                    >
                       <option value="No">No</option>
                       <option value="Yes">Yes</option>
                       <option value="N/A">N/A</option>
                     </select>
                   </div>
-                  <div>
-                    <label>Follow-up By</label>
-                    <input type="text" value={followUpBy} onChange={(e) => setFollowUpBy(e.target.value)} placeholder="Responsible person" />
-                  </div>
-                  <div>
-                    <label>Follow-up Due Date</label>
-                    <input type="date" value={followUpDueDate} onChange={(e) => setFollowUpDueDate(e.target.value)} />
-                  </div>
+                  {correctiveActionRequired === "Yes" && (
+                    <>
+                      <div style={{ gridColumn: "1 / -1", fontWeight: "bold", color: "var(--primary)", fontSize: "0.9rem", marginTop: "4px" }}>
+                        If yes:
+                      </div>
+                      <div>
+                        <label>Follow-up By</label>
+                        <input type="text" value={followUpBy} onChange={(e) => setFollowUpBy(e.target.value)} placeholder="Responsible person" />
+                      </div>
+                      <div>
+                        <label>Follow-up Due Date</label>
+                        <input type="date" value={followUpDueDate} onChange={(e) => setFollowUpDueDate(e.target.value)} />
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="form-grid-2" style={{ marginTop: "12px" }}>
                   <div>
