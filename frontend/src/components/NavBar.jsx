@@ -16,12 +16,14 @@ export default function NavBar() {
           <>
             <NavLink to="/submit">Submit Activity</NavLink>
             <NavLink to="/my-team">My Team</NavLink>
+            <NavLink to="/my-kap-surveys">KAP Surveys</NavLink>
           </>
         )}
         {user.role === "district_viewer" && (
           <>
             <NavLink to="/my-activities">My Activities</NavLink>
             <NavLink to="/my-monitoring-visits">Monitoring Visits</NavLink>
+            <NavLink to="/my-kap-surveys">KAP Surveys</NavLink>
           </>
         )}
         {user.role === "grm_focal" && <NavLink to="/my-grm-activities">My Activities</NavLink>}

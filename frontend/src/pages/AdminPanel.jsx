@@ -15,6 +15,7 @@ const TABS = [
   "Coordinator Plans",
   "Monitoring Visit Plans",
   "GRM Plans",
+  "KAP Survey Plans",
   "Executive Officials",
   "Overview",
   "Audit Log",
@@ -41,6 +42,7 @@ export default function AdminPanel() {
       {tab === "Coordinator Plans" && <CoordinatorPlansTab />}
       {tab === "Monitoring Visit Plans" && <MonitoringVisitPlansTab />}
       {tab === "GRM Plans" && <GrmPlansTab />}
+      {tab === "KAP Survey Plans" && <KapPlansTab />}
       {tab === "Executive Officials" && <ExecutiveOfficialsTab />}
       {tab === "Overview" && <OverviewTab />}
       {tab === "Audit Log" && <AuditLogTab />}
@@ -1480,6 +1482,311 @@ function GrmPlansTab() {
                     className={`btn-delete-icon ${removingId === p._id ? "btn-loading" : ""}`}
                     onClick={() => removePlan(p._id, `${MONTH_NAMES[p.month - 1]} ${p.year}`)}
                     aria-label={`Remove ${MONTH_NAMES[p.month - 1]} ${p.year} plan`}
+                  >
+                    <span className="btn-label">
+                      <MdCancel />
+                    </span>
+                    {removingId === p._id && <span className="btn-spinner" />}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function KapPlansTab() {
+  const { showToast } = useToast();
+  const now = new Date();
+  const [plans, setPlans] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [mobilizers, setMobilizers] = useState([]);
+  const [coordinators, setCoordinators] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [form, setForm] = useState({
+    month: now.getMonth() + 1,
+    year: now.getFullYear(),
+    weeks: [emptyWeek(), emptyWeek(), emptyWeek(), emptyWeek()],
+    districtId: "",
+    targetRole: "member",
+    targetMobilizerId: "",
+    coordinatorId: "",
+  });
+  const [creating, setCreating] = useState(false);
+  const [removingId, setRemovingId] = useState(null);
+
+  function load() {
+    api.get("/kap-plans").then((res) => setPlans(res.data));
+    api.get("/districts").then((res) => setDistricts(res.data));
+    api.get("/members").then((res) => setMobilizers(res.data.filter((m) => m.role === "member")));
+    api.get("/district-coordinators").then((res) => setCoordinators(res.data));
+    api.get("/teams").then((res) => setTeams(res.data));
+  }
+  useEffect(load, []);
+
+  function handleMobilizerSelect(mobId) {
+    const mob = mobilizers.find((m) => m._id === mobId);
+    const mobTeam = teams.find((t) => t._id === (mob?.team?._id || mob?.team));
+    const autoDistrict = mobTeam?.district?._id || mobTeam?.district || mob?.district?._id || mob?.district || "";
+    setForm((f) => ({
+      ...f,
+      targetMobilizerId: mobId,
+      districtId: autoDistrict || f.districtId,
+    }));
+  }
+
+  function handleCoordinatorSelect(coordId) {
+    const coord = coordinators.find((c) => c._id === coordId);
+    const autoDistrict = coord?.district?._id || coord?.district || "";
+    setForm((f) => ({
+      ...f,
+      coordinatorId: coordId,
+      districtId: autoDistrict || f.districtId,
+    }));
+  }
+
+  function updateWeek(i, field, value) {
+    setForm((f) => ({ ...f, weeks: f.weeks.map((w, idx) => (idx === i ? { ...w, [field]: value } : w)) }));
+  }
+
+  function addWeek() {
+    setForm((f) => ({ ...f, weeks: [...f.weeks, emptyWeek()] }));
+  }
+
+  function removeWeek(i) {
+    setForm((f) => ({ ...f, weeks: f.weeks.filter((_, idx) => idx !== i) }));
+  }
+
+  async function createPlan(e) {
+    e.preventDefault();
+    if (!form.districtId) {
+      showToast("error", "District is required");
+      return;
+    }
+    if (form.targetRole === "member" && !form.targetMobilizerId) {
+      showToast("error", "Target Social Mobilizer is required");
+      return;
+    }
+    if (form.targetRole === "district_viewer" && !form.coordinatorId) {
+      showToast("error", "District Coordinator is required");
+      return;
+    }
+
+    setCreating(true);
+    try {
+      await api.post("/kap-plans", {
+        month: Number(form.month),
+        year: Number(form.year),
+        weeks: form.weeks,
+        district: form.districtId,
+        targetRole: form.targetRole,
+        targetMobilizer: form.targetRole === "member" ? form.targetMobilizerId : undefined,
+        coordinator: form.targetRole === "district_viewer" ? form.coordinatorId : undefined,
+      });
+      setForm({
+        month: now.getMonth() + 1,
+        year: now.getFullYear(),
+        weeks: [emptyWeek(), emptyWeek(), emptyWeek(), emptyWeek()],
+        districtId: "",
+        targetRole: "member",
+        targetMobilizerId: "",
+        coordinatorId: "",
+      });
+      showToast("success", "KAP Plan created", "Assigned mobilizer or coordinator can now submit KAP surveys against these dates.");
+      load();
+    } catch (err) {
+      showToast("error", err.response?.data?.error || "Failed to create KAP plan");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function removePlan(id, label) {
+    if (!confirm(`Delete the ${label} plan? This cannot be undone.`)) return;
+    setRemovingId(id);
+    try {
+      await api.delete(`/kap-plans/${id}`);
+      showToast("success", "Plan removed");
+      load();
+    } catch (err) {
+      showToast("error", err.response?.data?.error || "Failed to delete plan");
+    } finally {
+      setRemovingId(null);
+    }
+  }
+
+  return (
+    <div>
+      <form className="card" onSubmit={createPlan}>
+        <div className="date-time-row">
+          <label>
+            Month
+            <select value={form.month} onChange={(e) => setForm({ ...form, month: e.target.value })}>
+              {MONTH_NAMES.map((m, i) => (
+                <option key={m} value={i + 1}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Year
+            <input type="number" value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })} required />
+          </label>
+        </div>
+
+        <div className="date-time-row">
+          <label>
+            Assign Target Role
+            <select
+              value={form.targetRole}
+              onChange={(e) => setForm({ ...form, targetRole: e.target.value, targetMobilizerId: "", coordinatorId: "", districtId: "" })}
+              required
+            >
+              <option value="member">Social Mobilizer</option>
+              <option value="district_viewer">District Coordinator</option>
+            </select>
+          </label>
+
+          {form.targetRole === "member" ? (
+            <label>
+              Target Social Mobilizer
+              <select
+                value={form.targetMobilizerId}
+                onChange={(e) => handleMobilizerSelect(e.target.value)}
+                required
+              >
+                <option value="">Select Social Mobilizer</option>
+                {mobilizers.map((m) => (
+                  <option key={m._id} value={m._id}>
+                    {m.name} ({m.email})
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <label>
+              District Coordinator
+              <select
+                value={form.coordinatorId}
+                onChange={(e) => handleCoordinatorSelect(e.target.value)}
+                required
+              >
+                <option value="">Select District Coordinator</option>
+                {coordinators.map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.name} ({c.email})
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          <label>
+            District
+            <select value={form.districtId} onChange={(e) => setForm({ ...form, districtId: e.target.value })} required>
+              <option value="">Select district</option>
+              {districts.map((d) => (
+                <option key={d._id} value={d._id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <fieldset>
+          <legend>Weeks & Dates</legend>
+          {form.weeks.map((w, i) => (
+            <div className="date-time-row" key={i}>
+              <label>
+                Week
+                <select value={w.weekNumber} onChange={(e) => updateWeek(i, "weekNumber", e.target.value)} required>
+                  <option value="" disabled>
+                    Select week
+                  </option>
+                  {WEEK_NUMBERS.map((n) => (
+                    <option key={n} value={n}>
+                      Week {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Date
+                <input type="date" value={w.date} onChange={(e) => updateWeek(i, "date", e.target.value)} required />
+              </label>
+              <label>
+                Day
+                <select value={w.dayOfWeek} onChange={(e) => updateWeek(i, "dayOfWeek", e.target.value)} required>
+                  <option value="" disabled>
+                    Select day
+                  </option>
+                  {WEEKDAYS.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {form.weeks.length > 1 && (
+                <button type="button" className="btn-delete-icon" onClick={() => removeWeek(i)} aria-label="Remove week">
+                  <MdCancel />
+                </button>
+              )}
+            </div>
+          ))}
+          <button type="button" onClick={addWeek}>
+            + Add week
+          </button>
+        </fieldset>
+
+        <button type="submit" disabled={creating} className={creating ? "btn-loading" : ""}>
+          <span className="btn-label">Create KAP Plan</span>
+          {creating && <span className="btn-spinner" />}
+        </button>
+      </form>
+
+      <div className="table-scroll">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Month/Year</th>
+              <th>District</th>
+              <th>Target Role</th>
+              <th>Assigned Person</th>
+              <th>Weeks & Dates</th>
+              <th>Created By</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {plans.map((p) => (
+              <tr key={p._id}>
+                <td>
+                  {MONTH_NAMES[p.month - 1]} {p.year}
+                </td>
+                <td>{p.district?.name}</td>
+                <td>{p.targetRole === "district_viewer" ? "District Coordinator" : "Social Mobilizer"}</td>
+                <td>{p.targetRole === "district_viewer" ? p.coordinator?.name : p.targetMobilizer?.name}</td>
+                <td>
+                  {p.weeks.map((w) => (
+                    <div key={w._id}>
+                      Week {w.weekNumber}: {new Date(w.date).toLocaleDateString("en-GB")} ({w.dayOfWeek})
+                    </div>
+                  ))}
+                </td>
+                <td>{p.createdBy?.name}</td>
+                <td>
+                  <button
+                    type="button"
+                    disabled={removingId === p._id}
+                    className={`btn-delete-icon ${removingId === p._id ? "btn-loading" : ""}`}
+                    onClick={() => removePlan(p._id, `${MONTH_NAMES[p.month - 1]} ${p.year}`)}
+                    aria-label={`Remove plan`}
                   >
                     <span className="btn-label">
                       <MdCancel />

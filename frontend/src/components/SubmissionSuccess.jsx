@@ -1,7 +1,13 @@
 import { FiArrowLeft } from "react-icons/fi";
 import "./SubmissionSuccess.css";
 
-export default function SubmissionSuccess({ onReturn = () => {} }) {
+export default function SubmissionSuccess({
+  message = "Activity submitted",
+  buttonLabel = "Return to submitting other activity",
+  onReturn,
+  onReset,
+}) {
+  const handleReturn = onReturn || onReset || (() => {});
   return (
     <div className="submission-success">
       <div className="submission-success-icon">
@@ -11,11 +17,11 @@ export default function SubmissionSuccess({ onReturn = () => {} }) {
         </svg>
       </div>
 
-      <p className="submission-success-message">Activity submitted</p>
+      <p className="submission-success-message">{message}</p>
 
-      <button className="submission-success-return" onClick={onReturn}>
+      <button className="submission-success-return" onClick={handleReturn}>
         <FiArrowLeft size={16} />
-        Return to submitting other activity
+        {buttonLabel}
       </button>
     </div>
   );

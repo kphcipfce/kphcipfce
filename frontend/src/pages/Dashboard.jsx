@@ -7,6 +7,7 @@ import ActivityDetail from "../components/ActivityDetail";
 import CoordinatorActivityDetail from "../components/CoordinatorActivityDetail";
 import GrmActivityDetail from "../components/GrmActivityDetail";
 import MonitoringVisitDetail from "../components/MonitoringVisitDetail";
+import KapSurveyDetail from "../components/KapSurveyDetail";
 import { IoMdDownload } from "react-icons/io";
 import { MdFileDownloadDone } from "react-icons/md";
 import { EyeIcon } from "../components/icons";
@@ -97,21 +98,28 @@ function MonitoringDashboard() {
   const [coordinatorActivities, setCoordinatorActivities] = useState([]);
   const [grmActivities, setGrmActivities] = useState([]);
   const [monitoringVisits, setMonitoringVisits] = useState([]);
+  const [kapSurveys, setKapSurveys] = useState([]);
+  const [kapAnalytics, setKapAnalytics] = useState(null);
   const [openId, setOpenId] = useState(null);
   const [openCoordinatorId, setOpenCoordinatorId] = useState(null);
   const [openGrmId, setOpenGrmId] = useState(null);
   const [openMonitoringVisit, setOpenMonitoringVisit] = useState(null);
+  const [openKapSurvey, setOpenKapSurvey] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [exportDone, setExportDone] = useState(false);
   const [exportingCoordinator, setExportingCoordinator] = useState(false);
   const [exportDoneCoordinator, setExportDoneCoordinator] = useState(false);
   const [exportingGrm, setExportingGrm] = useState(false);
   const [exportDoneGrm, setExportDoneGrm] = useState(false);
+  const [exportingKap, setExportingKap] = useState(false);
+  const [exportDoneKap, setExportDoneKap] = useState(false);
 
   async function load() {
     const requests = [
       api.get("/dashboard/monitoring").then((res) => setMonitoring(res.data)),
       api.get("/monitoring-visits").then((res) => setMonitoringVisits(res.data)),
+      api.get("/kap-surveys").then((res) => setKapSurveys(res.data)),
+      api.get("/kap-surveys/analytics").then((res) => setKapAnalytics(res.data)),
     ];
     if (!hideGrmTable) requests.push(api.get("/grm-activities").then((res) => setGrmActivities(res.data)));
     if (!isGrmFocal) {
@@ -161,6 +169,8 @@ function MonitoringDashboard() {
     );
   const exportGrmTracker = () =>
     downloadTracker("/dashboard/export-grm.xlsx", "grm-tracker.xlsx", "GRM tracker", setExportingGrm, setExportDoneGrm);
+  const exportKapTracker = () =>
+    downloadTracker("/kap-surveys/export", "kap-survey-tracker.xlsx", "KAP Survey Tracker", setExportingKap, setExportDoneKap);
 
   return (
     <div className="page">
@@ -580,6 +590,294 @@ function MonitoringDashboard() {
         </>
       )}
 
+      {/* KAP Survey Records & Theme-wise Analytics */}
+      {!isGrmFocal && (
+        <div
+          style={{
+            marginTop: "2.5rem",
+            background: "linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)",
+            border: "1px solid #e2e8f0",
+            borderRadius: "14px",
+            padding: "1.5rem",
+            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.03)",
+          }}
+        >
+          {/* Header Title Section */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem", flexWrap: "wrap", gap: "0.75rem" }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                <h2 style={{ margin: 0, fontSize: "1.3rem", color: "#0f172a", fontWeight: "700" }}>
+                  KAP Survey Records &amp; Theme Analytics
+                </h2>
+                <span style={{ background: "#e0f2fe", color: "#0369a1", fontSize: "0.75rem", padding: "3px 10px", borderRadius: "999px", fontWeight: "600", border: "1px solid #bae6fd" }}>
+                  Knowledge • Attitudes • Practices
+                </span>
+              </div>
+              <p style={{ margin: "4px 0 0", fontSize: "0.85rem", color: "#64748b" }}>
+                Comprehensive theme-wise domain breakdown (% positive scores) and submitted questionnaire records
+              </p>
+            </div>
+
+            {canModerate && (
+              <button
+                type="button"
+                className={`btn-export ${exportingKap ? "btn-loading" : ""}`}
+                disabled={exportingKap}
+                onClick={exportKapTracker}
+                style={{ background: "#006644", color: "#ffffff", borderColor: "#005236" }}
+              >
+                <span className="btn-label">
+                  {exportDoneKap ? <MdFileDownloadDone /> : <IoMdDownload />}
+                  Export KAP Tracker
+                </span>
+                {exportingKap && <span className="btn-spinner" />}
+              </button>
+            )}
+          </div>
+
+          {kapAnalytics && (
+            <>
+              {/* Metrics Grid Row */}
+              <div
+                className="metrics"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: "1.5rem",
+                  marginBottom: "2rem",
+                }}
+              >
+                <div
+                  className="metric card"
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "8px",
+                    padding: "1.25rem",
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+                  }}
+                >
+                  <div className="metric-label" style={{ color: "#64748b", fontSize: "0.85rem", fontWeight: "500" }}>
+                    Total KAP Surveys
+                  </div>
+                  <div className="metric-value" style={{ color: "#0f172a", fontSize: "1.8rem", fontWeight: "700", marginTop: "6px" }}>
+                    {kapAnalytics.totalSurveys}
+                  </div>
+                </div>
+
+                <div
+                  className="metric card"
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "8px",
+                    padding: "1.25rem",
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+                  }}
+                >
+                  <div className="metric-label" style={{ color: "#64748b", fontSize: "0.85rem", fontWeight: "500" }}>
+                    Overall Knowledge [K]
+                  </div>
+                  <div className="metric-value" style={{ color: "#0284c7", fontSize: "1.8rem", fontWeight: "700", marginTop: "6px" }}>
+                    {kapAnalytics.overallKap?.knowledgePct != null ? `${kapAnalytics.overallKap.knowledgePct}%` : "—"}
+                  </div>
+                </div>
+
+                <div
+                  className="metric card"
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "8px",
+                    padding: "1.25rem",
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+                  }}
+                >
+                  <div className="metric-label" style={{ color: "#64748b", fontSize: "0.85rem", fontWeight: "500" }}>
+                    Overall Attitude [A]
+                  </div>
+                  <div className="metric-value" style={{ color: "#dc2626", fontSize: "1.8rem", fontWeight: "700", marginTop: "6px" }}>
+                    {kapAnalytics.overallKap?.attitudePct != null ? `${kapAnalytics.overallKap.attitudePct}%` : "—"}
+                  </div>
+                </div>
+
+                <div
+                  className="metric card"
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "8px",
+                    padding: "1.25rem",
+                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+                  }}
+                >
+                  <div className="metric-label" style={{ color: "#64748b", fontSize: "0.85rem", fontWeight: "500" }}>
+                    Overall Practice [P]
+                  </div>
+                  <div className="metric-value" style={{ color: "#16a34a", fontSize: "1.8rem", fontWeight: "700", marginTop: "6px" }}>
+                    {kapAnalytics.overallKap?.practicePct != null ? `${kapAnalytics.overallKap.practicePct}%` : "—"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Grouped Bar Chart for KAP Domain Scores across Themes */}
+              {Array.isArray(kapAnalytics.themeKapData) && kapAnalytics.themeKapData.length > 0 && (
+                <div className="card" style={{ marginBottom: "1.25rem", padding: "1.25rem", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: "1.05rem", color: "#1e293b", fontWeight: "600" }}>
+                        Theme-wise Knowledge, Attitude &amp; Practice (KAP) % Score Chart
+                      </h3>
+                      <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "#64748b" }}>
+                        Grouped % positive score distribution across Themes 1 to 9 and Total aggregate
+                      </p>
+                    </div>
+
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "0.75rem", fontWeight: "600", padding: "3px 8px", background: "#e0f2fe", color: "#0369a1", borderRadius: "6px" }}>
+                        <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#0284c7" }} /> Knowledge
+                      </span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "0.75rem", fontWeight: "600", padding: "3px 8px", background: "#ffe4e6", color: "#be123c", borderRadius: "6px" }}>
+                        <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#dc2626" }} /> Attitude
+                      </span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "0.75rem", fontWeight: "600", padding: "3px 8px", background: "#d1fae5", color: "#047857", borderRadius: "6px" }}>
+                        <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#16a34a" }} /> Practice
+                      </span>
+                    </div>
+                  </div>
+
+                  <ResponsiveContainer width="100%" height={380}>
+                    <BarChart data={kapAnalytics.themeKapData} margin={{ top: 20, right: 20, left: 0, bottom: 35 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="themeLabel" interval={0} height={40} tick={{ fontSize: 12, fill: "#475569" }} />
+                      <YAxis domain={[0, 100]} unit="%" allowDecimals={false} width={45} tick={{ fontSize: 12, fill: "#475569" }} />
+                      <Tooltip
+                        formatter={(value, name, item) => {
+                          const payload = item.payload;
+                          let detailStr = "";
+                          if (name === "Knowledge [K]") detailStr = ` (${payload.kPos}/${payload.kTotal} positive)`;
+                          else if (name === "Attitude [A]") detailStr = ` (${payload.aPos}/${payload.aTotal} positive)`;
+                          else if (name === "Practice [P]") detailStr = ` (${payload.pPos}/${payload.pTotal} positive)`;
+                          return [`${value}%${detailStr}`, name];
+                        }}
+                        labelFormatter={(label, items) => items?.[0]?.payload?.fullTitle || label}
+                        contentStyle={{ borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+                      />
+                      <Legend verticalAlign="top" height={36} />
+                      <Bar dataKey="Knowledge" fill="#0284c7" name="Knowledge [K]" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Attitude" fill="#dc2626" name="Attitude [A]" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Practice" fill="#16a34a" name="Practice [P]" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* KAP Survey Records Table */}
+          <div className="card" style={{ padding: "1.25rem", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px" }}>
+            <div style={{ marginBottom: "0.75rem" }}>
+              <h3 style={{ margin: 0, fontSize: "1.05rem", color: "#1e293b", fontWeight: "600" }}>Submitted KAP Survey Records</h3>
+              <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "#64748b" }}>Inspect questionnaire details and review status</p>
+            </div>
+
+            <div className="table-scroll">
+              <table className="table">
+                <thead>
+                  <tr style={{ background: "#f8fafc" }}>
+                    <th>Date</th>
+                    <th>District</th>
+                    <th>Facility</th>
+                    <th>Survey Type</th>
+                    <th>Sex</th>
+                    <th>Submitted By</th>
+                    <th>Positive Score %</th>
+                    <th>Review Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {kapSurveys.length === 0 ? (
+                    <tr>
+                      <td colSpan="9" style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>
+                        No KAP Survey records submitted yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    kapSurveys.map((k) => {
+                      // Category badge colors
+                      const catBg = k.respondentCategory === "School" ? "#f3e8ff" : k.respondentCategory === "Community" ? "#fef3c7" : k.respondentCategory === "Health Staff" ? "#dbeafe" : "#d1fae5";
+                      const catColor = k.respondentCategory === "School" ? "#7e22ce" : k.respondentCategory === "Community" ? "#b45309" : k.respondentCategory === "Health Staff" ? "#1d4ed8" : "#047857";
+
+                      return (
+                        <tr key={k._id}>
+                          <td style={{ fontWeight: "500", whiteSpace: "nowrap" }}>{new Date(k.dateTime || k.createdAt).toLocaleDateString("en-GB")}</td>
+                          <td><strong>{k.district?.name}</strong></td>
+                          <td>{k.facility?.name}</td>
+                          <td>
+                            <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "6px", fontSize: "12px", fontWeight: "600", background: catBg, color: catColor }}>
+                              {k.respondentCategory}
+                            </span>
+                          </td>
+                          <td>
+                            <span style={{ display: "inline-block", padding: "2px 6px", borderRadius: "4px", fontSize: "11px", fontWeight: "600", background: "#f1f5f9", color: "#475569" }}>
+                              {k.respondentSex}
+                            </span>
+                          </td>
+                          <td>
+                            {k.submittedBy?.name} <span style={{ fontSize: "11px", color: "#64748b" }}>({k.submittedByRole === "district_viewer" ? "DC" : "SM"})</span>
+                          </td>
+                          <td>
+                            <span
+                              style={{
+                                display: "inline-block",
+                                padding: "3px 8px",
+                                borderRadius: "6px",
+                                fontWeight: "bold",
+                                fontSize: "12px",
+                                background: k.scorePercentage >= 80 ? "rgba(46, 125, 50, 0.12)" : k.scorePercentage >= 60 ? "rgba(237, 108, 2, 0.12)" : "rgba(211, 47, 47, 0.12)",
+                                color: k.scorePercentage >= 80 ? "#2e7d32" : k.scorePercentage >= 60 ? "#ed6c02" : "#d32f2f",
+                              }}
+                            >
+                              {k.scorePercentage}%
+                            </span>
+                          </td>
+                          <td>
+                            {k.reviews && k.reviews.length > 0 ? (
+                              <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                                {k.reviews.map((r, i) => (
+                                  <span key={i} style={{ fontSize: "11px", color: r.acceptedComplete === "Yes" ? "#2e7d32" : "#d32f2f", fontWeight: "bold" }}>
+                                    ✓ {r.reviewerName}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "600", background: "#fff7ed", color: "#c2410c", border: "1px solid #ffedd5" }}>
+                                Pending Review
+                              </span>
+                            )}
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="icon-btn"
+                              onClick={() => setOpenKapSurvey(k)}
+                              aria-label="Preview KAP Survey record"
+                            >
+                              <EyeIcon />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {openId && <ActivityDetail activityId={openId} canModerate={canModerate} onClose={() => setOpenId(null)} onStatusChanged={load} />}
       {openCoordinatorId && (
         <CoordinatorActivityDetail
@@ -594,6 +892,13 @@ function MonitoringDashboard() {
       )}
       {openMonitoringVisit && (
         <MonitoringVisitDetail visit={openMonitoringVisit} onClose={() => setOpenMonitoringVisit(null)} />
+      )}
+      {openKapSurvey && (
+        <KapSurveyDetail
+          survey={openKapSurvey}
+          onClose={() => setOpenKapSurvey(null)}
+          onReviewUpdated={load}
+        />
       )}
     </div>
   );

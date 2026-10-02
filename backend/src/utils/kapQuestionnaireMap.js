@@ -1,0 +1,1292 @@
+export const KAP_THEMES = [
+  {
+    "id": 1,
+    "key": "theme1",
+    "titleEn": "Theme 1 — KP-HCIP Awareness and Information",
+    "titleUr": "تھیم 1 — آگاہی اور معلومات"
+  },
+  {
+    "id": 2,
+    "key": "theme2",
+    "titleEn": "Theme 2 — Free Medicines",
+    "titleUr": "تھیم 2 — مفت ادویات"
+  },
+  {
+    "id": 3,
+    "key": "theme3",
+    "titleEn": "Theme 3 — Family Planning Commodities",
+    "titleUr": "تھیم 3 — خاندانی منصوبہ بندی کی اشیاء"
+  },
+  {
+    "id": 4,
+    "key": "theme4",
+    "titleEn": "Theme 4 — Grievance Redress Mechanism (GRM) and Safe Reporting",
+    "titleUr": "تھیم 4 — شکایت کے ازالے کا طریقہ کار اور محفوظ رپورٹنگ"
+  },
+  {
+    "id": 5,
+    "key": "theme5",
+    "titleEn": "Theme 5 — Nutrition",
+    "titleUr": "تھیم 5 — غذائیت"
+  },
+  {
+    "id": 6,
+    "key": "theme6",
+    "titleEn": "Theme 6 — Health Care Waste Management & Environmental Health",
+    "titleUr": "تھیم 6 — صحت کے کچرے کا انتظام اور ماحولیاتی صحت"
+  },
+  {
+    "id": 7,
+    "key": "theme7",
+    "titleEn": "Theme 7 — Solarization of Health Facilities",
+    "titleUr": "تھیم 7 — صحت کے مراکز کی سولرائزیشن"
+  },
+  {
+    "id": 8,
+    "key": "theme8",
+    "titleEn": "Theme 8 — Emergency Obstetric and Newborn Care (BEmONC / CEmONC)",
+    "titleUr": "تھیم 8 — زچہ و بچہ کی ہنگامی نگہداشت"
+  },
+  {
+    "id": 9,
+    "key": "theme9",
+    "titleEn": "Theme 9 — Use of and Satisfaction with Health Services & Community Outreach",
+    "titleUr": "تھیم 9 — صحت کی خدمات کا استعمال اور اطمینان"
+  }
+];
+
+export const KAP_QUESTIONNAIRE = {
+  "Community": [
+    {
+      "themeId": 1,
+      "id": "A1",
+      "code": "A1 [K]",
+      "textEn": "Have you heard of KP-HCIP (Khyber Pakhtunkhwa Human Capital Investment Project)?",
+      "textUr": "کیا آپ نے خیبر پختونخوا ہیومن کیپیٹل انویسٹمنٹ پروجیکٹ کے بارے میں سنا ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "A2",
+      "code": "A2 [K]",
+      "textEn": "Where did you hear about KP-HCIP? (ask only if Yes to A1; tick all that apply; do not read options)",
+      "textUr": "آپ نے خیبر پختونخوا ہیومن کیپیٹل انویسٹمنٹ پروجیکٹ کے بارے میں کہاں سے سنا؟",
+      "type": "multi",
+      "condition": {
+        "questionId": "A1",
+        "value": "Yes"
+      },
+      "options": [
+        "Mosque / loudspeaker / radio",
+        "LHW / LHV",
+        "Health facility staff",
+        "Community meeting",
+        "Family or neighbours",
+        "TV / social media",
+        "Other"
+      ]
+    },
+    {
+      "themeId": 2,
+      "id": "A3",
+      "code": "A3 [K]",
+      "textEn": "Do you know that medicines are free of charge at the government health facility?",
+      "textUr": "کیا آپ کو معلوم ہے کہ سرکاری صحت مرکز [مرکزِ صحت] سے دوائیں مفت ملتی ہیں؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 2,
+      "id": "A4",
+      "code": "A4 [P]",
+      "textEn": "In the last 3 months, did you get all the medicines prescribed for you free from the health facility? (not applicable = did not visit)",
+      "textUr": "پچھلے 3 مہینوں میں کیا آپ کو صحت مرکز سے تجویز کردہ تمام دوائیں مفت ملیں؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Not applicable"
+      ]
+    },
+    {
+      "themeId": 3,
+      "id": "A5",
+      "code": "A5 [K]",
+      "textEn": "Do you know that family planning supplies (for example condoms, pills, injections) are available free at the government health facility? (married respondents, ask in private)",
+      "textUr": "کیا آپ کو معلوم ہے کہ سرکاری صحت مرکز سے خاندانی منصوبہ بندی کی اشیاء (جیسے کنڈوم، گولیاں، ٹیکے) مفت ملتی ہیں؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 3,
+      "id": "AT1",
+      "code": "AT1 [A]",
+      "textEn": "Keeping a gap between children is good for the health of mother and child.",
+      "textUr": "بچوں کی پیدائش میں وقفہ رکھنا ماں اور بچے دونوں کی صحت کے لیے اچھا ہے۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 3,
+      "id": "AT2",
+      "code": "AT2 [A]",
+      "textEn": "It is acceptable for a couple to use family planning supplies from the government health facility.",
+      "textUr": "میاں بیوی کا سرکاری صحت مرکز سے خاندانی منصوبہ بندی کی اشیاء لینا مناسب ہے۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 3,
+      "id": "A6",
+      "code": "A6 [P]",
+      "textEn": "Are you or your spouse currently using a family planning method? (married respondents, ask in private)",
+      "textUr": "کیا آپ یا آپ کے شریکِ حیات اس وقت خاندانی منصوبہ بندی کا کوئی طریقہ استعمال کر رہے ہیں؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "themeId": 3,
+      "id": "A7",
+      "code": "A7 [P]",
+      "textEn": "Did you get the family planning supplies free from a government health facility? (ask only if Yes to A6, in private)",
+      "textUr": "کیا آپ کو خاندانی منصوبہ بندی کی اشیاء سرکاری صحت مرکز سے مفت ملیں؟",
+      "type": "single",
+      "condition": {
+        "questionId": "A6",
+        "value": "Yes"
+      },
+      "options": [
+        "Yes",
+        "No",
+        "Not applicable"
+      ]
+    },
+    {
+      "themeId": 4,
+      "id": "A8",
+      "code": "A8 [K]",
+      "textEn": "Do you know that there is a way to register a complaint about health services (complaint box or helpline number)?",
+      "textUr": "کیا آپ کو معلوم ہے کہ صحت کی خدمات کے بارے میں شکایت درج کرانے کا کوئی طریقہ (شکایتی باکس یا ہیلپ لائن نمبر) موجود ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 4,
+      "id": "A9",
+      "code": "A9 [K]",
+      "textEn": "Do you know that a woman can report mistreatment or harassment by health staff or project staff safely and confidentially? (ask in private)",
+      "textUr": "کیا آپ کو معلوم ہے کہ صحت کے عملے یا منصوبے کے عملے کی بدسلوکی یا ہراسانی کی شکایت محفوظ اور خفیہ طریقے سے کی جا سکتی ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 4,
+      "id": "AT3",
+      "code": "AT3 [A]",
+      "textEn": "It is safe to complain about poor health services and complaints made about health services are acted upon.",
+      "textUr": "صحت کی خراب خدمات کی شکایت کرنا محفوظ ہے۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 4,
+      "id": "A10",
+      "code": "A10 [P]",
+      "textEn": "In the last 6 months, have you made a complaint about health services?",
+      "textUr": "پچھلے 6 مہینوں میں کیا آپ نے صحت کی خدمات کے بارے میں کوئی شکایت کی؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "themeId": 4,
+      "id": "A11",
+      "code": "A11 [P]",
+      "textEn": "Was your complaint resolved? (ask only if Yes to A10)",
+      "textUr": "کیا آپ کی شکایت کا ازالہ ہوا؟",
+      "type": "single",
+      "condition": {
+        "questionId": "A10",
+        "value": "Yes"
+      },
+      "options": [
+        "Yes",
+        "No",
+        "Not applicable"
+      ]
+    },
+    {
+      "themeId": 5,
+      "id": "AT4",
+      "code": "AT4 [A]",
+      "textEn": "Good nutrition advice from the health facility helps mothers and children stay healthy.",
+      "textUr": "صحت مرکز سے ملنے والا خوراک کا اچھا مشورہ ماؤں اور بچوں کو صحت مند رکھتا ہے۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 6,
+      "id": "A12",
+      "code": "A12 [K]",
+      "textEn": "How can dengue be prevented? (tick all that apply; do not read options)",
+      "textUr": "ڈینگی سے بچاؤ کیسے کیا جا سکتا ہے؟",
+      "type": "multi",
+      "options": [
+        "Remove standing water",
+        "Cover water containers",
+        "Use nets / repellent",
+        "Keep drains clean",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 6,
+      "id": "AT5",
+      "code": "AT5 [A]",
+      "textEn": "Disposing of health care waste safely at the facility protects the whole community.",
+      "textUr": "صحت مرکز میں کچرے کو محفوظ طریقے سے ٹھکانے لگانا پوری کمیونٹی کو محفوظ رکھتا ہے۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 7,
+      "id": "A13",
+      "code": "A13 [K]",
+      "textEn": "Does the health facility have a solar power system installed by KP-HCIP?",
+      "textUr": "کیا مرکزِ صحت میں خیبر پختونخوا ہیومن کیپیٹل انویسٹمنٹ پروجیکٹ کی طرف سے فراہم کردہ سولر بجلی کا نظام لگا ہوا ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 7,
+      "id": "AT6",
+      "code": "AT6 [A]",
+      "textEn": "Solar power helps a health facility stay operational and working during power cuts.",
+      "textUr": "سولر بجلی صحت مرکز کو لوڈشیڈنگ میں بھی کھلا رکھنے اور کام جاری رکھنے میں مدد دیتی ہے۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 8,
+      "id": "A14",
+      "code": "A14 [K]",
+      "textEn": "Do you know that a health facility near you provides delivery services at any time of day or night? (BEmONC)",
+      "textUr": "کیا آپ کو معلوم ہے کہ آپ کے قریب کسی صحت مرکز میں دن یا رات کسی بھی وقت زچگی کی سہولت دستیاب ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 8,
+      "id": "A15",
+      "code": "A15 [K]",
+      "textEn": "Do you know a hospital near you where emergency operations (for example caesarean section) and blood transfusion are available? (CEmONC)",
+      "textUr": "کیا آپ کو معلوم ہے کہ آپ کے قریب کوئی ہسپتال ہے جہاں ہنگامی آپریشن (جیسے سی سیکشن) اور خون لگانے کی سہولت موجود ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 8,
+      "id": "AT7",
+      "code": "AT7 [A]",
+      "textEn": "A health facility open day and night with emergency care would make more women use it for delivery.",
+      "textUr": "دن رات کھلا اور ہنگامی سہولت والا صحت مرکز زیادہ خواتین کو زچگی کے لیے اپنی طرف لائے گا۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 8,
+      "id": "A16",
+      "code": "A16 [P]",
+      "textEn": "Did anyone in your household have a recent delivery (in the last 2 years) that took place at a health facility? (women who gave birth in the last 2 years; not applicable = no delivery)",
+      "textUr": "کیا آپ کی حالیہ زچگی (پچھلے 2 سال میں) صحت مرکز میں ہوئی؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Not applicable"
+      ]
+    },
+    {
+      "themeId": 9,
+      "id": "AT8",
+      "code": "AT8 [A]",
+      "textEn": "Services at the government health facility are good enough to use.",
+      "textUr": "سرکاری صحت مرکز کی خدمات اتنی اچھی ہیں کہ ان سے فائدہ اٹھایا جا سکے۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 9,
+      "id": "A17",
+      "code": "A17 [P]",
+      "textEn": "In the last 3 months, did anyone in your household visit the health facility?",
+      "textUr": "پچھلے 3 مہینوں میں کیا آپ کے گھر کا کوئی فرد مرکزِ صحت گیا؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "themeId": 9,
+      "id": "A18",
+      "code": "A18 [P]",
+      "textEn": "When someone in your household falls ill, do you usually go to the government health facility first?",
+      "textUr": "جب آپ کے گھر کا کوئی فرد بیمار ہوتا ہے تو کیا آپ عموماً سب سے پہلے سرکاری صحت مرکز جاتے ہیں؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "themeId": 9,
+      "id": "A19",
+      "code": "A19 [P]",
+      "textEn": "Would you recommend the health facility to others?",
+      "textUr": "کیا آپ دوسروں کو مرکزِ صحت جانے کا مشورہ دیں گے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    }
+  ],
+  "Health Staff": [
+    {
+      "themeId": 1,
+      "id": "B1",
+      "code": "B1 [K]",
+      "textEn": "Have you heard of KP-HCIP (Khyber Pakhtunkhwa Human Capital Investment Project)?",
+      "textUr": "کیا آپ نے KP-HCIP کے بارے میں سنا ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "B2",
+      "code": "B2 [K]",
+      "textEn": "Do you know that KP-HCIP supports Free medicines at health facilities?",
+      "textUr": "مفت دوائیں",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "B3",
+      "code": "B3 [K]",
+      "textEn": "Do you know that KP-HCIP supports Family planning commodities at health facilities?",
+      "textUr": "خاندانی منصوبہ بندی کی اشیاء",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "B4",
+      "code": "B4 [K]",
+      "textEn": "Do you know that KP-HCIP supports Grievance redress mechanism (GRM) at health facilities?",
+      "textUr": "شکایات کے ازالے کا نظام (GRM)",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "B5",
+      "code": "B5 [K]",
+      "textEn": "Do you know that KP-HCIP supports Nutrition services (Zinc, Folic acid, MMS) at health facilities?",
+      "textUr": "غذائیت کی خدمات",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "B6",
+      "code": "B6 [K]",
+      "textEn": "Do you know that KP-HCIP supports Health care waste management at health facilities?",
+      "textUr": "صحت کے کچرے کا انتظام",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "B7",
+      "code": "B7 [K]",
+      "textEn": "Do you know that KP-HCIP supports Solarization of health facilities?",
+      "textUr": "صحت مراکز کی سولرائزیشن",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "B8",
+      "code": "B8 [K]",
+      "textEn": "Do you know that KP-HCIP supports BEmONC / CEmONC (emergency obstetric and newborn care) at health facilities?",
+      "textUr": "BEmONC / CEmONC (زچہ و بچہ کی ہنگامی نگہداشت)",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 2,
+      "id": "BT1",
+      "code": "BT1 [A]",
+      "textEn": "Free medicines encourage more people to use this facility.",
+      "textUr": "مفت دوائیں زیادہ لوگوں کو اس صحت مرکز کی طرف لاتی ہیں۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 3,
+      "id": "B9",
+      "code": "B9 [K]",
+      "textEn": "Are family planning commodities (condoms, pills, injectables, IUCD, implants) provided free of charge?",
+      "textUr": "کیا خاندانی منصوبہ بندی کی اشیاء (کنڈوم، گولیاں، ٹیکے، IUCD، امپلانٹ) مفت فراہم کی جا رہی ہیں؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 3,
+      "id": "BT2",
+      "code": "BT2 [A]",
+      "textEn": "Family planning counselling and commodities should be available to every eligible client without judgement.",
+      "textUr": "خاندانی منصوبہ بندی کا مشورہ اور اشیاء ہر اہل فرد کو بغیر کسی تنقید کے ملنی چاہئیں۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 3,
+      "id": "B10",
+      "code": "B10 [P]",
+      "textEn": "Observe: are family planning commodities in stock today?",
+      "textUr": "مشاہدہ کریں: کیا آج خاندانی منصوبہ بندی کی اشیاء اسٹاک میں موجود ہیں؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "themeId": 4,
+      "id": "B11",
+      "code": "B11 [K]",
+      "textEn": "Is a GRC Committee functional in your facility?",
+      "textUr": "کیا آپ کے صحت مرکز میں شکایات کے ازالے کی کمیٹی (GRC) فعال ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 4,
+      "id": "B12",
+      "code": "B12 [K]",
+      "textEn": "Should every complaint be recorded and passed to the GRC committee on the same day?",
+      "textUr": "کیا ہر شکایت کو درج کر کے اسی دن شکایات کے ازالے کی کمیٹی (GRC) تک پہنچانا چاہیے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 4,
+      "id": "B13",
+      "code": "B13 [K]",
+      "textEn": "If a woman reports harassment or abuse by a staff member, should you investigate it yourself?",
+      "textUr": "اگر کوئی خاتون عملے کے کسی فرد کی ہراسانی یا زیادتی کی شکایت کرے تو کیا آپ کو خود اس کی تفتیش کرنی چاہیے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 4,
+      "id": "B14",
+      "code": "B14 [K]",
+      "textEn": "Are forwarding complaints part of the role of the health committee (PCMC/HMC)?",
+      "textUr": "کیا شکایات آگے پہنچانا صحت کمیٹی (ی سی ایم سی/ایچ ایم سی) کے کردار میں شامل ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 4,
+      "id": "BT3",
+      "code": "BT3 [A]",
+      "textEn": "Complaints/feedback from clients help improve this facility.",
+      "textUr": "مریضوں کی شکایات اس صحت مرکز کو بہتر بنانے میں مدد دیتی ہیں۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 4,
+      "id": "BT4",
+      "code": "BT4 [A]",
+      "textEn": "Women clients should be able to complain to a female staff member.",
+      "textUr": "خاتون مریضوں کو خاتون عملے سے شکایت کرنے کی سہولت ہونی چاہیے۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 4,
+      "id": "B15",
+      "code": "B15 [P]",
+      "textEn": "Observe: is a complaint box or helpline number displayed?",
+      "textUr": "مشاہدہ کریں: کیا شکایتی باکس یا ہیلپ لائن نمبر آویزاں ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "themeId": 4,
+      "id": "B16",
+      "code": "B16 [P]",
+      "textEn": "Were the complaints received last month recorded and forwarded?",
+      "textUr": "کیا پچھلے مہینے موصول ہونے والی شکایات کو درج کر کے آگے بھیجا گیا؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "No complaints received"
+      ]
+    },
+    {
+      "themeId": 4,
+      "id": "B17",
+      "code": "B17 [P]",
+      "textEn": "Have you received training on handling complaints (GRM)?",
+      "textUr": "کیا آپ نے شکایات سے نمٹنے جی آر ایم کی تربیت حاصل کی ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "themeId": 5,
+      "id": "BT5",
+      "code": "BT5 [A]",
+      "textEn": "Nutrition screening and counselling should be part of routine care for children and mothers.",
+      "textUr": "بچوں اور ماؤں کی معمول کی دیکھ بھال میں غذائیت کی جانچ اور مشورہ شامل ہونا چاہیے۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 6,
+      "id": "B18",
+      "code": "B18 [K]",
+      "textEn": "Must used needles (sharps) be kept separate from general waste in a puncture-proof container?",
+      "textUr": "کیا استعمال شدہ سوئیاں عام کچرے سے الگ، سوراخ نہ ہونے والے ڈبے میں رکھی جانی چاہئیں؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 6,
+      "id": "B19",
+      "code": "B19 [K]",
+      "textEn": "Is it acceptable to burn or dump health care waste in the open behind the facility?",
+      "textUr": "کیا صحت کا کچرا مرکز کے پیچھے کھلی جگہ پر جلانا یا پھینکنا درست ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 6,
+      "id": "BT6",
+      "code": "BT6 [A]",
+      "textEn": "Handling waste safely is everyone's responsibility, not only the cleaner's.",
+      "textUr": "کچرا محفوظ طریقے سے سنبھالنا صرف صفائی کرنے والے کی نہیں بلکہ ہر شخص کی ذمہ داری ہے۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 6,
+      "id": "B20",
+      "code": "B20 [P]",
+      "textEn": "Observe: is waste separated in labelled bins where it is produced?",
+      "textUr": "مشاہدہ کریں: کیا کچرا جہاں پیدا ہوتا ہے وہیں نشان لگے ڈبوں میں الگ الگ کیا جا رہا ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "themeId": 6,
+      "id": "B21",
+      "code": "B21 [P]",
+      "textEn": "Observe: is a sharps container available and in use?",
+      "textUr": "مشاہدہ کریں: کیا سوئیوں کے لیے مخصوص ڈبہ موجود ہے اور استعمال ہو رہا ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "themeId": 6,
+      "id": "B22",
+      "code": "B22 [P]",
+      "textEn": "Have you received training on health care waste management?",
+      "textUr": "کیا آپ نے صحت کے کچرے کے انتظام کی تربیت حاصل کی ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "themeId": 7,
+      "id": "BT7",
+      "code": "BT7 [A]",
+      "textEn": "Solar power will make services at this facility more reliable.",
+      "textUr": "سولر بجلی سے اس صحت مرکز کی خدمات زیادہ قابلِ اعتماد ہو جائیں گی۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 7,
+      "id": "B23",
+      "code": "B23 [P]",
+      "textEn": "Observe: does the facility have a working solar power system?",
+      "textUr": "مشاہدہ کریں: کیا صحت مرکز میں سولر بجلی کا نظام کام کر رہا ہے؟",
+      "type": "single",
+      "options": [
+        "Yes, working",
+        "Installed but not working",
+        "No solar system"
+      ]
+    },
+    {
+      "themeId": 8,
+      "id": "B24",
+      "code": "B24 [K]",
+      "textEn": "Do you know which facility you should refer a woman to in an obstetric emergency?",
+      "textUr": "کیا آپ کو معلوم ہے کہ زچگی کی ہنگامی حالت میں خاتون کو کس صحت مرکز ریفر کرنا ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "themeId": 8,
+      "id": "BT8",
+      "code": "BT8 [A]",
+      "textEn": "Round-the-clock delivery and emergency care is needed in this area.",
+      "textUr": "اس علاقے میں دن رات زچگی اور ہنگامی سہولت کی ضرورت ہے۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 9,
+      "id": "BT9",
+      "code": "BT9 [A]",
+      "textEn": "Awareness sessions in the community bring more clients to this facility.",
+      "textUr": "کمیونٹی میں آگاہی سیشنز اس صحت مرکز میں مزید مریض لاتے ہیں۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 9,
+      "id": "B25",
+      "code": "B25 [P]",
+      "textEn": "Observe: is a list of services and timings displayed?",
+      "textUr": "مشاہدہ کریں: کیا سہولیات اور اوقاتِ کار کی فہرست آویزاں ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    }
+  ],
+  "Patients": [
+    {
+      "themeId": 1,
+      "id": "B26",
+      "code": "B26 [K]",
+      "textEn": "Have you heard of KP-HCIP (Khyber Pakhtunkhwa Human Capital Investment Project)? (ask each client leaving the facility)",
+      "textUr": "کیا آپ نے پختونخوا ہیومن کیپیٹل انویسٹمنٹ پروجیکٹ کے بارے میں سنا ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "B27",
+      "code": "B27 [K]",
+      "textEn": "How did you learn about the services here? (tick all that apply)",
+      "textUr": "آپ کو یہاں کی سہولیات کے بارے میں کیسے پتا چلا؟",
+      "type": "multi",
+      "options": [
+        "Mosque / loudspeaker / radio",
+        "LHW / LHV",
+        "Family or neighbours",
+        "Already knew",
+        "Other"
+      ]
+    },
+    {
+      "themeId": 2,
+      "id": "B28",
+      "code": "B28 [P]",
+      "textEn": "Did you get all the free medicines prescribed for you today?",
+      "textUr": "کیا آج آپ کو تجویز کردہ مفت دوائیں ملیں؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "No medicines were prescribed"
+      ]
+    },
+    {
+      "themeId": 3,
+      "id": "B29",
+      "code": "B29 [K]",
+      "textEn": "Do you know that family planning supplies are available free at this facility? (ask in private)",
+      "textUr": "کیا آپ کو معلوم ہے کہ اس صحت مرکز میں خاندانی منصوبہ بندی کی اشیاء مفت ملتی ہیں؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 4,
+      "id": "B30",
+      "code": "B30 [K]",
+      "textEn": "Do you know how to complain if you are unhappy with services here?",
+      "textUr": "اگر آپ یہاں کی خدمات سے خوش نہ ہوں تو کیا آپ کو شکایت کرنے کا طریقہ معلوم ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "themeId": 7,
+      "id": "B31",
+      "code": "B31 [P]",
+      "textEn": "Was electricity (lights, fans) available during your visit?",
+      "textUr": "کیا آپ کی آمد کے دوران بجلی (لائٹ، پنکھے) موجود تھی؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "themeId": 9,
+      "id": "B32",
+      "code": "B32 [P]",
+      "textEn": "What did you come for today?",
+      "textUr": "آپ آج کس کام کے لیے آئے ہیں؟",
+      "type": "single",
+      "options": [
+        "General illness",
+        "Child illness",
+        "Nutrition check / advice",
+        "Family planning",
+        "Delivery / maternal care",
+        "Other"
+      ]
+    },
+    {
+      "themeId": 9,
+      "id": "B33",
+      "code": "B33 [P]",
+      "textEn": "Would you recommend this facility to others?",
+      "textUr": "کیا آپ دوسروں کو اس صحت مرکز میں جانے کا مشورہ دیں گے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    }
+  ],
+  "School": [
+    {
+      "themeId": 1,
+      "id": "C1",
+      "code": "C1 [K]",
+      "section": "Section 1 — Teacher / Staff Respondent",
+      "textEn": "When should students wash their hands with soap? (tick all that apply; do not read options)",
+      "textUr": "طلبہ کو صابن سے ہاتھ کب دھونے چاہئیں؟",
+      "type": "multi",
+      "options": [
+        "After using the toilet",
+        "Before eating",
+        "After playing",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "C2",
+      "code": "C2 [K]",
+      "textEn": "Do you know that KP-HCIP supports school health activities such as washroom blocks, soap supply and health sessions?",
+      "textUr": "کیا آپ کو معلوم ہے کہ خیبر پختونخوا ہیومن کیپیٹل انویسٹمنٹ پروجیکٹ اسکولوں میں صحت کی سرگرمیوں، جیسے واش روم بلاک، صابن کی فراہمی اور صحت کے سیشنز، میں مدد کرتا ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "C3",
+      "code": "C3 [K]",
+      "textEn": "Do you know which government health facility your school should refer a sick student to?",
+      "textUr": "کیا آپ کو معلوم ہے کہ آپ کا اسکول کسی بیمار طالب علم کو کس سرکاری صحت مرکز میں بھیجے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "CT1",
+      "code": "CT1 [A]",
+      "textEn": "Schools share responsibility for children's health.",
+      "textUr": "بچوں کی صحت کی ذمہ داری میں اسکول بھی شریک ہے۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "CT2",
+      "code": "CT2 [A]",
+      "textEn": "Students can change hygiene habits in their homes.",
+      "textUr": "طلبہ اپنے گھروں میں صفائی کی عادات بدل سکتے ہیں۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "CT4",
+      "code": "CT4 [A]",
+      "textEn": "Keeping washrooms clean is the school's management responsibility.",
+      "textUr": "واش رومز کو صاف رکھنا اسکول کی ذمہ داری ہے۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "C4",
+      "code": "C4 [P]",
+      "textEn": "Has a KP-HCIP washroom block been built at this school?",
+      "textUr": "کیا اس اسکول میں KP-HCIP کے تحت واش روم بلاک بنایا گیا ہے؟",
+      "type": "single",
+      "options": [
+        "Yes, in use",
+        "Yes, but not in use",
+        "Under construction",
+        "No"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "C5",
+      "code": "C5 [P]",
+      "textEn": "Observe: are water and soap available at the handwashing point now?",
+      "textUr": "مشاہدہ کریں: کیا ہاتھ دھونے کی جگہ پر اس وقت پانی اور صابن موجود ہے؟",
+      "type": "single",
+      "options": [
+        "Water and soap",
+        "Water only",
+        "None"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "C6",
+      "code": "C6 [P]",
+      "textEn": "Observe: are the toilets clean?",
+      "textUr": "مشاہدہ کریں: کیا بیت الخلا صاف ہیں؟",
+      "type": "single",
+      "options": [
+        "Clean",
+        "Somewhat",
+        "Dirty"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "C7",
+      "code": "C7 [P]",
+      "textEn": "Observe: do toilets have a door that locks and water?",
+      "textUr": "مشاہدہ کریں: کیا بیت الخلا میں اندر سے بند ہونے والا دروازہ اور پانی موجود ہے؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Not applicable"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "C8",
+      "code": "C8 [K]",
+      "section": "Section 2 — Student Respondent",
+      "textEn": "When should you wash your hands with soap? (tick all that apply; do not read options)",
+      "textUr": "آپ کو صابن سے ہاتھ کب دھونے چاہئیں؟",
+      "type": "multi",
+      "options": [
+        "After using the toilet",
+        "Before eating",
+        "After playing",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "C9",
+      "code": "C9 [K]",
+      "textEn": "Which illnesses can handwashing prevent? (tick all that apply; do not read options)",
+      "textUr": "ہاتھ دھونے سے کون سی بیماریوں سے بچا جا سکتا ہے؟",
+      "type": "multi",
+      "options": [
+        "Diarrhoea",
+        "Cough / cold",
+        "Worms",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "C10",
+      "code": "C10 [K]",
+      "textEn": "Where do dengue mosquitoes breed?",
+      "textUr": "ڈینگی کے مچھر کہاں پرورش پاتے ہیں؟",
+      "type": "single",
+      "options": [
+        "Clean standing water",
+        "Dirty water",
+        "Garbage",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "C11",
+      "code": "C11 [K]",
+      "textEn": "How can drinking water be made safe? (tick all that apply; do not read options)",
+      "textUr": "پینے کے پانی کو محفوظ کیسے بنایا جا سکتا ہے؟",
+      "type": "multi",
+      "options": [
+        "Boiling",
+        "Filtering",
+        "Keeping it covered",
+        "Don't know"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "ST1",
+      "code": "ST1 [A]",
+      "textEn": "Hands need soap even when they look clean.",
+      "textUr": "ہاتھ صاف نظر آئیں تب بھی انہیں صابن سے دھونا ضروری ہے۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "ST2",
+      "code": "ST2 [A]",
+      "textEn": "Everyone must help keep the school toilets clean.",
+      "textUr": "اسکول کے بیت الخلا کو صاف رکھنے میں سب کو مدد کرنی چاہیے۔",
+      "type": "likert",
+      "options": [
+        "Agree",
+        "Not sure",
+        "Disagree"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "C12",
+      "code": "C12 [P]",
+      "textEn": "Do you use the school toilet?",
+      "textUr": "کیا آپ اسکول کا بیت الخلا استعمال کرتے ہیں؟",
+      "type": "single",
+      "options": [
+        "Always",
+        "Sometimes",
+        "Never"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "C13",
+      "code": "C13 [P]",
+      "textEn": "Did you wash your hands with soap after using the toilet today?",
+      "textUr": "کیا آپ نے آج بیت الخلا کے بعد صابن سے ہاتھ دھوئے؟",
+      "type": "single",
+      "options": [
+        "Yes, with soap",
+        "Water only",
+        "No"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "C14",
+      "code": "C14 [P]",
+      "textEn": "Did you tell your family something you learned about health at school this month?",
+      "textUr": "کیا اس مہینے آپ نے اسکول میں سیکھی ہوئی صحت کی کوئی بات اپنے گھر والوں کو بتائی؟",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "themeId": 1,
+      "id": "C15",
+      "code": "C15 [P]",
+      "textEn": "Ask the student to show how they wash hands. Observe: (tick each step done)",
+      "textUr": "طالب علم سے کہیں کہ ہاتھ دھو کر دکھائے۔ مشاہدہ کریں کہ اس نے کون سے مراحل کیے:",
+      "type": "multi",
+      "options": [
+        "Uses soap",
+        "Rubs palms and backs",
+        "Between fingers",
+        "Rinses and dries",
+        "Doesn't know"
+      ]
+    }
+  ]
+};
+
+export function getQuestionDomain(code = "") {
+  if (code.includes("[K]")) return "Knowledge";
+  if (code.includes("[A]")) return "Attitude";
+  if (code.includes("[P]")) return "Practice";
+  return "Knowledge";
+}
+
+export function isResponsePositive(val) {
+  if (val === "Yes" || val === "Agree" || val === "Satisfied") return true;
+  if (Array.isArray(val)) {
+    return val.length > 0 && !val.includes("Don't know");
+  }
+  return false;
+}
+
+const ALL_QUESTIONS_MAP = {};
+for (const [cat, qs] of Object.entries(KAP_QUESTIONNAIRE)) {
+  for (const q of qs) {
+    ALL_QUESTIONS_MAP[q.id] = {
+      ...q,
+      domain: getQuestionDomain(q.code),
+      category: cat,
+    };
+  }
+}
+
+export function findQuestionById(qId) {
+  return ALL_QUESTIONS_MAP[qId] || null;
+}
+
+export function buildDetailedResponses(responses, respondentCategory) {
+  if (!responses || typeof responses !== "object") return [];
+  const detailed = [];
+  for (const [qId, val] of Object.entries(responses)) {
+    if (val === undefined || val === null) continue;
+    const qInfo = findQuestionById(qId);
+    const domain = qInfo ? getQuestionDomain(qInfo.code) : (qId.startsWith("AT") || qId.includes("T") ? "Attitude" : qId.includes("P") ? "Practice" : "Knowledge");
+    const themeId = qInfo?.themeId || 1;
+    const themeObj = KAP_THEMES.find((t) => t.id === themeId) || KAP_THEMES[0];
+    const isPos = isResponsePositive(val);
+    detailed.push({
+      questionId: qId,
+      code: qInfo?.code || `${qId} [${domain[0]}]`,
+      domain,
+      themeId,
+      themeTitle: themeObj.titleEn,
+      response: val,
+      isPositive: isPos,
+    });
+  }
+  return detailed;
+}

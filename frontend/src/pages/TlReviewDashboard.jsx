@@ -4,19 +4,23 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import Spinner from "../components/Spinner";
 import MonitoringVisitDetail from "../components/MonitoringVisitDetail";
+import KapSurveyDetail from "../components/KapSurveyDetail";
 
 export default function TlReviewDashboard() {
   const { user } = useAuth();
   const { showToast } = useToast();
 
+  const [section, setSection] = useState("monitoring"); // "monitoring" | "kap"
   const [visits, setVisits] = useState([]);
+  const [kapSurveys, setKapSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("pending"); // "pending" | "reviewed" | "all"
 
   const [selectedVisit, setSelectedVisit] = useState(null);
+  const [selectedKapSurvey, setSelectedKapSurvey] = useState(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
 
-  // Review Form state
+  // Monitoring Visit Review Form state
   const [reviewerName, setReviewerName] = useState(user?.name || "TL Reviewer");
   const [reviewDate, setReviewDate] = useState(new Date().toISOString().split("T")[0]);
   const [acceptedComplete, setAcceptedComplete] = useState("Yes");
@@ -24,24 +28,28 @@ export default function TlReviewDashboard() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchVisits();
+    fetchData();
   }, []);
 
-  async function fetchVisits() {
+  async function fetchData() {
     try {
       setLoading(true);
-      const res = await api.get("/monitoring-visits");
-      setVisits(res.data);
+      const [vRes, kRes] = await Promise.all([
+        api.get("/monitoring-visits"),
+        api.get("/kap-surveys"),
+      ]);
+      setVisits(vRes.data);
+      setKapSurveys(kRes.data);
     } catch (err) {
-      showToast("error", "Failed to load monitoring visit records");
+      showToast("error", "Failed to load review records");
     } finally {
       setLoading(false);
     }
   }
 
-  function getReviewForUser(visit) {
-    if (!visit || !user) return null;
-    const reviews = visit.reviews || [];
+  function getReviewForUser(item) {
+    if (!item || !user) return null;
+    const reviews = item.reviews || [];
     return reviews.find(
       (r) =>
         String(r.reviewedBy) === String(user._id) ||
@@ -83,7 +91,7 @@ export default function TlReviewDashboard() {
       showToast("success", "Monitoring Visit Review submitted successfully!");
       setShowReviewModal(false);
       setSelectedVisit(null);
-      fetchVisits();
+      fetchData();
     } catch (err) {
       showToast("error", err.response?.data?.error || "Failed to submit review");
     } finally {
@@ -100,84 +108,183 @@ export default function TlReviewDashboard() {
     return true;
   });
 
+  const pendingKap = kapSurveys.filter((k) => !getReviewForUser(k));
+  const myReviewedKap = kapSurveys.filter((k) => !!getReviewForUser(k));
+
+  const filteredKapSurveys = kapSurveys.filter((k) => {
+    if (activeTab === "pending") return !getReviewForUser(k);
+    if (activeTab === "reviewed") return !!getReviewForUser(k);
+    return true;
+  });
+
   if (loading) return <Spinner />;
 
   return (
     <div className="page">
       <h1>TL / DTL Review Dashboard</h1>
-      <p className="page-subtitle">Inspect submitted DCMO Monitoring Visit Checklists and provide TL/DTL review sign-offs</p>
+      <p className="page-subtitle">Inspect submitted Checklists &amp; KAP Surveys and provide TL/DTL review sign-offs</p>
 
-      {/* Tabs */}
+      {/* Main Section Selector */}
+      <div className="tabs" style={{ marginBottom: "1rem" }}>
+        <button
+          className={`tab ${section === "monitoring" ? "active" : ""}`}
+          onClick={() => setSection("monitoring")}
+          style={{ fontSize: "1.05rem", fontWeight: "bold" }}
+        >
+          Monitoring Visits ({visits.length})
+        </button>
+        <button
+          className={`tab ${section === "kap" ? "active" : ""}`}
+          onClick={() => setSection("kap")}
+          style={{ fontSize: "1.05rem", fontWeight: "bold" }}
+        >
+          KAP Surveys ({kapSurveys.length})
+        </button>
+      </div>
+
+      {/* Filter Tabs */}
       <div className="tabs">
         <button
           className={`tab ${activeTab === "pending" ? "active" : ""}`}
           onClick={() => setActiveTab("pending")}
         >
-          Pending My Review ({pendingVisits.length})
+          Pending My Review ({section === "monitoring" ? pendingVisits.length : pendingKap.length})
         </button>
         <button
           className={`tab ${activeTab === "reviewed" ? "active" : ""}`}
           onClick={() => setActiveTab("reviewed")}
         >
-          My Reviewed Records ({myReviewedVisits.length})
+          My Reviewed Records ({section === "monitoring" ? myReviewedVisits.length : myReviewedKap.length})
         </button>
         <button
           className={`tab ${activeTab === "all" ? "active" : ""}`}
           onClick={() => setActiveTab("all")}
         >
-          All Records ({visits.length})
+          All Records ({section === "monitoring" ? visits.length : kapSurveys.length})
         </button>
       </div>
 
-      <div className="card">
-        <h2>{activeTab === "pending" ? "Pending My Review" : activeTab === "reviewed" ? "My Reviewed Records" : "All Monitoring Visits"}</h2>
-        {filteredVisits.length === 0 ? (
-          <p>No records found in this view.</p>
-        ) : (
-          <div className="table-scroll">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>District</th>
-                  <th>Facility</th>
-                  <th>UC / Village</th>
-                  <th>District Coordinator</th>
-                  <th>Target Mobilizer</th>
-                  <th>Score %</th>
-                  <th>My Review</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredVisits.map((v) => {
-                  const myRev = getReviewForUser(v);
-                  const totalReviews = (v.reviews || []).length;
-                  return (
-                    <tr key={v._id}>
-                      <td>{new Date(v.dateTime).toLocaleDateString()}</td>
-                      <td>{v.district?.name}</td>
-                      <td>{v.facility?.name}</td>
-                      <td>{v.ucVillage}</td>
-                      <td>{v.coordinator?.name || v.dcmoName}</td>
+      {section === "monitoring" ? (
+        <div className="card">
+          <h2>{activeTab === "pending" ? "Pending My Review" : activeTab === "reviewed" ? "My Reviewed Records" : "All Monitoring Visits"}</h2>
+          {filteredVisits.length === 0 ? (
+            <p>No monitoring visit records found in this view.</p>
+          ) : (
+            <div className="table-scroll">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>District</th>
+                    <th>Facility</th>
+                    <th>UC / Village</th>
+                    <th>District Coordinator</th>
+                    <th>Target Mobilizer</th>
+                    <th>Score %</th>
+                    <th>My Review</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredVisits.map((v) => {
+                    const myRev = getReviewForUser(v);
+                    return (
+                      <tr key={v._id}>
+                        <td>{new Date(v.dateTime).toLocaleDateString("en-GB")}</td>
+                        <td>{v.district?.name}</td>
+                        <td>{v.facility?.name}</td>
+                        <td>{v.ucVillage}</td>
+                        <td>{v.coordinator?.name || v.dcmoName}</td>
+                        <td>
+                          {v.targetMobilizer?.name}
+                          {v.targetMobilizer2 ? ` & ${v.targetMobilizer2.name}` : ""}
+                        </td>
+                        <td>
+                          <span
+                            style={{
+                              fontWeight: "bold",
+                              color: v.scorePercentage >= 80 ? "#2e7d32" : v.scorePercentage >= 60 ? "#ed6c02" : "#d32f2f",
+                            }}
+                          >
+                            {v.scorePercentage}%
+                          </span>
+                        </td>
+                        <td>
+                          {v.reviews && v.reviews.length > 0 ? (
+                            <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                              {v.reviews.map((r, i) => (
+                                <span
+                                  key={i}
+                                  className={`status-badge ${
+                                    r.acceptedComplete === "Yes" ? "status-present" : "status-absent"
+                                  }`}
+                                  style={{ fontSize: "11px", padding: "2px 6px", whiteSpace: "nowrap" }}
+                                >
+                                  {r.reviewerName}: {r.acceptedComplete}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="status-badge status-flagged">Pending</span>
+                          )}
+                        </td>
+                        <td>
+                          <div className="table-actions-cell">
+                            <button className="btn-secondary" onClick={() => setSelectedVisit(v)}>
+                              Inspect Checklist
+                            </button>
+                            <button className="btn-primary" onClick={() => openReviewModal(v)}>
+                              {myRev ? "Edit My Review" : "Review & Approve"}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="card">
+          <h2>{activeTab === "pending" ? "Pending My Review" : activeTab === "reviewed" ? "My Reviewed Records" : "All KAP Surveys"}</h2>
+          {filteredKapSurveys.length === 0 ? (
+            <p>No KAP survey records found in this view.</p>
+          ) : (
+            <div className="table-scroll">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>District</th>
+                    <th>Facility</th>
+                    <th>Survey Type</th>
+                    <th>Sex</th>
+                    <th>Submitted By</th>
+                    <th>Positive Score</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredKapSurveys.map((k) => (
+                    <tr key={k._id}>
+                      <td>{new Date(k.dateTime || k.createdAt).toLocaleDateString("en-GB")}</td>
+                      <td>{k.district?.name}</td>
+                      <td>{k.facility?.name}</td>
+                      <td>{k.respondentCategory}</td>
+                      <td>{k.respondentSex}</td>
                       <td>
-                        {v.targetMobilizer?.name}
-                        {v.targetMobilizer2 ? ` & ${v.targetMobilizer2.name}` : ""}
+                        {k.submittedBy?.name} ({k.submittedByRole === "district_viewer" ? "DC" : "SM"})
                       </td>
                       <td>
-                        <span
-                          style={{
-                            fontWeight: "bold",
-                            color: v.scorePercentage >= 80 ? "#2e7d32" : v.scorePercentage >= 60 ? "#ed6c02" : "#d32f2f",
-                          }}
-                        >
-                          {v.scorePercentage}%
-                        </span>
+                        <span className="badge badge-success">{k.scorePercentage}%</span>
                       </td>
                       <td>
-                        {v.reviews && v.reviews.length > 0 ? (
+                        {k.reviews && k.reviews.length > 0 ? (
                           <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-                            {v.reviews.map((r, i) => (
+                            {k.reviews.map((r, i) => (
                               <span
                                 key={i}
                                 className={`status-badge ${
@@ -190,34 +297,40 @@ export default function TlReviewDashboard() {
                             ))}
                           </div>
                         ) : (
-                          <span className="status-badge status-flagged">Pending</span>
+                          <span className="status-badge status-flagged">Pending Review</span>
                         )}
                       </td>
                       <td>
-                        <div className="table-actions-cell">
-                          <button className="btn-secondary" onClick={() => setSelectedVisit(v)}>
-                            Inspect Checklist
-                          </button>
-                          <button className="btn-primary" onClick={() => openReviewModal(v)}>
-                            {myRev ? "Edit My Review" : "Review & Approve"}
-                          </button>
-                        </div>
+                        <button className="btn-primary" onClick={() => setSelectedKapSurvey(k)}>
+                          Inspect &amp; Review KAP Survey
+                        </button>
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Checklist Details Modal */}
+      {/* Monitoring Visit Checklist Details Modal */}
       {selectedVisit && !showReviewModal && (
         <MonitoringVisitDetail visit={selectedVisit} onClose={() => setSelectedVisit(null)} />
       )}
 
-      {/* Review Modal */}
+      {/* KAP Survey Detail & Review Modal */}
+      {selectedKapSurvey && (
+        <KapSurveyDetail
+          survey={selectedKapSurvey}
+          onClose={() => setSelectedKapSurvey(null)}
+          onReviewUpdated={() => {
+            fetchData();
+          }}
+        />
+      )}
+
+      {/* Monitoring Visit Review Modal */}
       {showReviewModal && selectedVisit && (
         <div className="modal-backdrop" onClick={() => setShowReviewModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "600px", width: "90%" }}>

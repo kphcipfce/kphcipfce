@@ -9,6 +9,7 @@ import MyTeam from "./pages/MyTeam";
 import MyActivities from "./pages/MyActivities";
 import MyGrmActivities from "./pages/MyGrmActivities";
 import MyMonitoringVisits from "./pages/MyMonitoringVisits";
+import MyKapSurveys from "./pages/MyKapSurveys";
 import TlReviewDashboard from "./pages/TlReviewDashboard";
 import Dashboard from "./pages/Dashboard";
 import AdminPanel from "./pages/AdminPanel";
@@ -75,6 +76,14 @@ export default function App() {
               element={
                 <ProtectedRoute roles={["district_viewer"]}>
                   <MyMonitoringVisits />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-kap-surveys"
+              element={
+                <ProtectedRoute roles={["member", "district_viewer"]}>
+                  <MyKapSurveys />
                 </ProtectedRoute>
               }
             />

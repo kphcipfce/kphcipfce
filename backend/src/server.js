@@ -20,6 +20,8 @@ import dashboardRoutes from "./routes/dashboardRoutes.js";
 import auditRoutes from "./routes/auditRoutes.js";
 import monitoringPlanRoutes from "./routes/monitoringPlanRoutes.js";
 import monitoringVisitRoutes from "./routes/monitoringVisitRoutes.js";
+import kapPlanRoutes from "./routes/kapPlanRoutes.js";
+import kapSurveyRoutes from "./routes/kapSurveyRoutes.js";
 
 const app = express();
 
@@ -43,6 +45,8 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/audit-logs", auditRoutes);
 app.use("/api/monitoring-plans", monitoringPlanRoutes);
 app.use("/api/monitoring-visits", monitoringVisitRoutes);
+app.use("/api/kap-plans", kapPlanRoutes);
+app.use("/api/kap-surveys", kapSurveyRoutes);
 
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
