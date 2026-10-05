@@ -1512,8 +1512,8 @@ function KapPlansTab() {
     weeks: [emptyWeek(), emptyWeek(), emptyWeek(), emptyWeek()],
     districtId: "",
     targetRole: "member",
-    targetMobilizerId: "",
-    coordinatorId: "",
+    targetMobilizerIds: [],
+    coordinatorIds: [],
   });
   const [creating, setCreating] = useState(false);
   const [removingId, setRemovingId] = useState(null);
@@ -1527,25 +1527,15 @@ function KapPlansTab() {
   }
   useEffect(load, []);
 
-  function handleMobilizerSelect(mobId) {
+  function getMobilizerDistrict(mobId) {
     const mob = mobilizers.find((m) => m._id === mobId);
     const mobTeam = teams.find((t) => t._id === (mob?.team?._id || mob?.team));
-    const autoDistrict = mobTeam?.district?._id || mobTeam?.district || mob?.district?._id || mob?.district || "";
-    setForm((f) => ({
-      ...f,
-      targetMobilizerId: mobId,
-      districtId: autoDistrict || f.districtId,
-    }));
+    return mobTeam?.district?._id || mobTeam?.district || mob?.district?._id || mob?.district || "";
   }
 
-  function handleCoordinatorSelect(coordId) {
+  function getCoordinatorDistrict(coordId) {
     const coord = coordinators.find((c) => c._id === coordId);
-    const autoDistrict = coord?.district?._id || coord?.district || "";
-    setForm((f) => ({
-      ...f,
-      coordinatorId: coordId,
-      districtId: autoDistrict || f.districtId,
-    }));
+    return coord?.district?._id || coord?.district || "";
   }
 
   function updateWeek(i, field, value) {
@@ -1562,43 +1552,67 @@ function KapPlansTab() {
 
   async function createPlan(e) {
     e.preventDefault();
-    if (!form.districtId) {
-      showToast("error", "District is required");
-      return;
-    }
-    if (form.targetRole === "member" && !form.targetMobilizerId) {
-      showToast("error", "Target Social Mobilizer is required");
-      return;
-    }
-    if (form.targetRole === "district_viewer" && !form.coordinatorId) {
-      showToast("error", "District Coordinator is required");
+    const selectedIds = form.targetRole === "member" ? form.targetMobilizerIds : form.coordinatorIds;
+
+    if (!selectedIds || selectedIds.length === 0) {
+      showToast(
+        "error",
+        form.targetRole === "member" ? "Please select at least one Social Mobilizer" : "Please select at least one District Coordinator"
+      );
       return;
     }
 
     setCreating(true);
+    let successCount = 0;
+    let errorMessages = [];
+
     try {
-      await api.post("/kap-plans", {
-        month: Number(form.month),
-        year: Number(form.year),
-        weeks: form.weeks,
-        district: form.districtId,
-        targetRole: form.targetRole,
-        targetMobilizer: form.targetRole === "member" ? form.targetMobilizerId : undefined,
-        coordinator: form.targetRole === "district_viewer" ? form.coordinatorId : undefined,
-      });
-      setForm({
-        month: now.getMonth() + 1,
-        year: now.getFullYear(),
-        weeks: [emptyWeek(), emptyWeek(), emptyWeek(), emptyWeek()],
-        districtId: "",
-        targetRole: "member",
-        targetMobilizerId: "",
-        coordinatorId: "",
-      });
-      showToast("success", "KAP Plan created", "Assigned mobilizer or coordinator can now submit KAP surveys against these dates.");
-      load();
-    } catch (err) {
-      showToast("error", err.response?.data?.error || "Failed to create KAP plan");
+      for (const targetId of selectedIds) {
+        const targetDistrict = form.targetRole === "member" ? getMobilizerDistrict(targetId) : getCoordinatorDistrict(targetId);
+
+        if (!targetDistrict) {
+          const targetName =
+            form.targetRole === "member"
+              ? mobilizers.find((m) => m._id === targetId)?.name
+              : coordinators.find((c) => c._id === targetId)?.name;
+          errorMessages.push(`No district assigned to ${targetName || "selected target"}`);
+          continue;
+        }
+
+        try {
+          await api.post("/kap-plans", {
+            month: Number(form.month),
+            year: Number(form.year),
+            weeks: form.weeks,
+            district: targetDistrict,
+            targetRole: form.targetRole,
+            targetMobilizer: form.targetRole === "member" ? targetId : undefined,
+            coordinator: form.targetRole === "district_viewer" ? targetId : undefined,
+          });
+          successCount++;
+        } catch (err) {
+          const errMsg = err.response?.data?.error || "Failed to create plan";
+          errorMessages.push(errMsg);
+        }
+      }
+
+      if (successCount > 0) {
+        setForm({
+          month: now.getMonth() + 1,
+          year: now.getFullYear(),
+          weeks: [emptyWeek(), emptyWeek(), emptyWeek(), emptyWeek()],
+          districtId: "",
+          targetRole: "member",
+          targetMobilizerIds: [],
+          coordinatorIds: [],
+        });
+        showToast("success", `${successCount} KAP Plan(s) created`, "Assigned mobilizer(s) or coordinator(s) can now submit KAP surveys against these dates.");
+        load();
+      }
+
+      if (errorMessages.length > 0) {
+        showToast("error", errorMessages.join("; "));
+      }
     } finally {
       setCreating(false);
     }
@@ -1638,12 +1652,20 @@ function KapPlansTab() {
           </label>
         </div>
 
-        <div className="date-time-row">
+        <div className="date-time-row" style={{ alignItems: "flex-start" }}>
           <label>
             Assign Target Role
             <select
               value={form.targetRole}
-              onChange={(e) => setForm({ ...form, targetRole: e.target.value, targetMobilizerId: "", coordinatorId: "", districtId: "" })}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  targetRole: e.target.value,
+                  targetMobilizerIds: [],
+                  coordinatorIds: [],
+                  districtId: "",
+                })
+              }
               required
             >
               <option value="member">Social Mobilizer</option>
@@ -1653,13 +1675,21 @@ function KapPlansTab() {
 
           {form.targetRole === "member" ? (
             <label>
-              Target Social Mobilizer
+              Target Social Mobilizer(s)
+              <span style={{ display: "block", fontSize: "0.75rem", color: "#64748b", fontWeight: "normal" }}>
+                Hold Ctrl (Windows) or Cmd (Mac) / Shift to select multiple
+              </span>
               <select
-                value={form.targetMobilizerId}
-                onChange={(e) => handleMobilizerSelect(e.target.value)}
+                multiple
+                size={Math.min(6, Math.max(3, mobilizers.length))}
+                value={form.targetMobilizerIds}
+                onChange={(e) => {
+                  const opts = Array.from(e.target.selectedOptions, (opt) => opt.value);
+                  setForm((f) => ({ ...f, targetMobilizerIds: opts }));
+                }}
                 required
+                style={{ height: "auto", minHeight: "100px", padding: "6px" }}
               >
-                <option value="">Select Social Mobilizer</option>
                 {mobilizers.map((m) => (
                   <option key={m._id} value={m._id}>
                     {m.name} ({m.email})
@@ -1669,13 +1699,21 @@ function KapPlansTab() {
             </label>
           ) : (
             <label>
-              District Coordinator
+              District Coordinator(s)
+              <span style={{ display: "block", fontSize: "0.75rem", color: "#64748b", fontWeight: "normal" }}>
+                Hold Ctrl (Windows) or Cmd (Mac) / Shift to select multiple
+              </span>
               <select
-                value={form.coordinatorId}
-                onChange={(e) => handleCoordinatorSelect(e.target.value)}
+                multiple
+                size={Math.min(6, Math.max(3, coordinators.length))}
+                value={form.coordinatorIds}
+                onChange={(e) => {
+                  const opts = Array.from(e.target.selectedOptions, (opt) => opt.value);
+                  setForm((f) => ({ ...f, coordinatorIds: opts }));
+                }}
                 required
+                style={{ height: "auto", minHeight: "100px", padding: "6px" }}
               >
-                <option value="">Select District Coordinator</option>
                 {coordinators.map((c) => (
                   <option key={c._id} value={c._id}>
                     {c.name} ({c.email})
@@ -1685,17 +1723,40 @@ function KapPlansTab() {
             </label>
           )}
 
-          <label>
-            District
-            <select value={form.districtId} onChange={(e) => setForm({ ...form, districtId: e.target.value })} required>
-              <option value="">Select district</option>
-              {districts.map((d) => (
-                <option key={d._id} value={d._id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          {(() => {
+            const selectedIds = form.targetRole === "member" ? form.targetMobilizerIds : form.coordinatorIds;
+            const targetDistricts = selectedIds
+              .map((id) => (form.targetRole === "member" ? getMobilizerDistrict(id) : getCoordinatorDistrict(id)))
+              .filter(Boolean);
+            const uniqueDistrictIds = [...new Set(targetDistricts)];
+
+            let districtDisplayLabel = "Select target above to auto-fetch district";
+            if (uniqueDistrictIds.length === 1) {
+              const dDoc = districts.find((d) => d._id === uniqueDistrictIds[0]);
+              districtDisplayLabel = dDoc ? dDoc.name : "Auto-fetched District";
+            } else if (uniqueDistrictIds.length > 1) {
+              const names = uniqueDistrictIds.map((id) => districts.find((d) => d._id === id)?.name).filter(Boolean);
+              districtDisplayLabel = `Auto-fetched (${names.join(", ")})`;
+            }
+
+            return (
+              <label>
+                District
+                <select
+                  value={uniqueDistrictIds.length === 1 ? uniqueDistrictIds[0] : ""}
+                  disabled
+                  style={{ backgroundColor: "#f1f5f9", cursor: "not-allowed" }}
+                >
+                  <option value="">{districtDisplayLabel}</option>
+                  {districts.map((d) => (
+                    <option key={d._id} value={d._id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            );
+          })()}
         </div>
 
         <fieldset>
