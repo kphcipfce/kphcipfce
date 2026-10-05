@@ -31,12 +31,14 @@ import {
   FiTrendingUp,
   FiUsers,
   FiUserCheck,
+  FiFileText,
 } from "react-icons/fi";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import ActivityDetail from "../components/ActivityDetail";
 import CoordinatorActivityDetail from "../components/CoordinatorActivityDetail";
 import GrmActivityDetail from "../components/GrmActivityDetail";
+import KapSurveyDetail from "../components/KapSurveyDetail";
 import "./ExecutiveDashboard.css";
 
 const COLORS = {
@@ -148,10 +150,13 @@ export default function ExecutiveDashboard() {
 
   const [activities, setActivities] = useState([]);
   const [overview, setOverview] = useState(null);
+  const [kapAnalytics, setKapAnalytics] = useState(null);
+  const [kapSurveys, setKapSurveys] = useState([]);
+  const [openKapSurvey, setOpenKapSurvey] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [openActivity, setOpenActivity] = useState(null);
-  const [exporting, setExporting] = useState(null); // "field" | "coordinator" | "grm" | null
+  const [exporting, setExporting] = useState(null); // "field" | "coordinator" | "grm" | "kap" | null
 
   useEffect(() => {
     Promise.all([api.get("/districts"), api.get("/teams")])
@@ -177,11 +182,20 @@ export default function ExecutiveDashboard() {
   const load = () => {
     setLoading(true);
     setError("");
-    api
-      .get("/dashboard/executive", { params: query })
-      .then((res) => {
-        setActivities(res.data.activities || []);
-        setOverview(res.data);
+
+    const kapParams = {};
+    if (filters.district) kapParams.district = filters.district;
+
+    Promise.all([
+      api.get("/dashboard/executive", { params: query }),
+      api.get("/kap-surveys/analytics", { params: kapParams }).catch(() => ({ data: null })),
+      api.get("/kap-surveys", { params: kapParams }).catch(() => ({ data: [] })),
+    ])
+      .then(([resExec, resKapAnalytics, resKapSurveys]) => {
+        setActivities(resExec.data.activities || []);
+        setOverview(resExec.data);
+        setKapAnalytics(resKapAnalytics.data || null);
+        setKapSurveys(Array.isArray(resKapSurveys.data) ? resKapSurveys.data : []);
       })
       .catch(() => setError("Could not load executive data. Please try again."))
       .finally(() => setLoading(false));
@@ -194,6 +208,7 @@ export default function ExecutiveDashboard() {
       field: ["/dashboard/export.xlsx", "field-tracker.xlsx"],
       coordinator: ["/dashboard/export-coordinator.xlsx", "dcmo-fmo-tracker.xlsx"],
       grm: ["/dashboard/export-grm.xlsx", "grm-tracker.xlsx"],
+      kap: ["/kap-surveys/export", "kap-survey-tracker.xlsx"],
     };
     const [url, filename] = endpoints[kind];
     setExporting(kind);
@@ -612,6 +627,217 @@ export default function ExecutiveDashboard() {
           </Panel>
         </div>
 
+        {/* KAP Survey Records & Theme Analytics Panel */}
+        <div className="exec-grid-3">
+          <Panel
+            title="KAP Survey Records & Theme Analytics"
+            subtitle="Knowledge, Attitudes & Practices domain breakdown (% scores) and questionnaire records"
+            icon={FiFileText}
+            wide
+            action={
+              <button
+                className="exec-btn exec-btn-primary"
+                disabled={exporting === "kap"}
+                onClick={() => exportTracker("kap")}
+                style={{ padding: "0.35rem 0.75rem", fontSize: "0.75rem" }}
+              >
+                <FiDownload size={14} />
+                {exporting === "kap" ? "Exporting…" : "Export KAP Tracker"}
+              </button>
+            }
+          >
+            {kapAnalytics && (
+              <>
+                {/* Metrics Grid Row */}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                    gap: "1.25rem",
+                    marginBottom: "1.5rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "12px",
+                      padding: "1rem 1.25rem",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                    }}
+                  >
+                    <div style={{ color: "#64748b", fontSize: "0.8rem", fontWeight: "600" }}>Total KAP Surveys</div>
+                    <div style={{ color: "#0f172a", fontSize: "1.6rem", fontWeight: "700", marginTop: "4px" }}>
+                      {kapAnalytics.totalSurveys}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "12px",
+                      padding: "1rem 1.25rem",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                    }}
+                  >
+                    <div style={{ color: "#64748b", fontSize: "0.8rem", fontWeight: "600" }}>Overall Knowledge [K]</div>
+                    <div style={{ color: "#0284c7", fontSize: "1.6rem", fontWeight: "700", marginTop: "4px" }}>
+                      {kapAnalytics.overallKap?.knowledgePct != null ? `${kapAnalytics.overallKap.knowledgePct}%` : "—"}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "12px",
+                      padding: "1rem 1.25rem",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                    }}
+                  >
+                    <div style={{ color: "#64748b", fontSize: "0.8rem", fontWeight: "600" }}>Overall Attitude [A]</div>
+                    <div style={{ color: "#dc2626", fontSize: "1.6rem", fontWeight: "700", marginTop: "4px" }}>
+                      {kapAnalytics.overallKap?.attitudePct != null ? `${kapAnalytics.overallKap.attitudePct}%` : "—"}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "12px",
+                      padding: "1rem 1.25rem",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                    }}
+                  >
+                    <div style={{ color: "#64748b", fontSize: "0.8rem", fontWeight: "600" }}>Overall Practice [P]</div>
+                    <div style={{ color: "#16a34a", fontSize: "1.6rem", fontWeight: "700", marginTop: "4px" }}>
+                      {kapAnalytics.overallKap?.practicePct != null ? `${kapAnalytics.overallKap.practicePct}%` : "—"}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Grouped Bar Chart for KAP Domain Scores across Themes */}
+                {Array.isArray(kapAnalytics.themeKapData) && kapAnalytics.themeKapData.length > 0 && (
+                  <div style={{ marginBottom: "1.5rem", padding: "1.25rem", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "14px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: "1rem", color: "#1e293b", fontWeight: "600" }}>
+                          Theme-wise Knowledge, Attitude &amp; Practice (KAP) % Score Chart
+                        </h4>
+                        <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "#64748b" }}>
+                          Grouped % positive score distribution across Themes 1 to 9 and Total aggregate
+                        </p>
+                      </div>
+
+                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "0.75rem", fontWeight: "600", padding: "2px 8px", background: "#e0f2fe", color: "#0369a1", borderRadius: "6px" }}>
+                          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#0284c7" }} /> Knowledge
+                        </span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "0.75rem", fontWeight: "600", padding: "2px 8px", background: "#ffe4e6", color: "#be123c", borderRadius: "6px" }}>
+                          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#dc2626" }} /> Attitude
+                        </span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "0.75rem", fontWeight: "600", padding: "2px 8px", background: "#d1fae5", color: "#047857", borderRadius: "6px" }}>
+                          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#16a34a" }} /> Practice
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="exec-chart-box-tall">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={kapAnalytics.themeKapData} margin={{ top: 15, right: 15, left: 0, bottom: 25 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                          <XAxis dataKey="themeLabel" interval={0} height={35} tick={{ fontSize: 11, fill: "#475569" }} />
+                          <YAxis domain={[0, 100]} unit="%" allowDecimals={false} width={40} tick={{ fontSize: 11, fill: "#475569" }} />
+                          <Tooltip
+                            formatter={(value, name, item) => {
+                              const payload = item.payload;
+                              let detailStr = "";
+                              if (name === "Knowledge [K]") detailStr = ` (${payload.kPos}/${payload.kTotal} positive)`;
+                              else if (name === "Attitude [A]") detailStr = ` (${payload.aPos}/${payload.aTotal} positive)`;
+                              else if (name === "Practice [P]") detailStr = ` (${payload.pPos}/${payload.pTotal} positive)`;
+                              return [`${value}%${detailStr}`, name];
+                            }}
+                            labelFormatter={(label, items) => items?.[0]?.payload?.fullTitle || label}
+                            contentStyle={{ borderRadius: "12px", border: "1px solid #cbd5e1", fontSize: "12px" }}
+                          />
+                          <Legend verticalAlign="top" height={32} wrapperStyle={{ fontSize: 11 }} />
+                          <Bar dataKey="Knowledge" fill="#0284c7" name="Knowledge [K]" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="Attitude" fill="#dc2626" name="Attitude [A]" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="Practice" fill="#16a34a" name="Practice [P]" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Submitted KAP Survey Records Table */}
+            <div className="exec-table-wrap">
+              <h4 style={{ margin: "0 0 0.5rem", fontSize: "0.95rem", color: "#1e293b", fontWeight: "600" }}>
+                Submitted KAP Survey Records ({kapSurveys.length})
+              </h4>
+              {kapSurveys.length === 0 ? (
+                <Empty label="No KAP Survey records submitted yet" />
+              ) : (
+                <table className="exec-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>District</th>
+                      <th>Facility</th>
+                      <th>Category</th>
+                      <th>Sex</th>
+                      <th>Submitted by</th>
+                      <th>KAP Score %</th>
+                      <th>Status</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {kapSurveys.map((k) => (
+                      <tr key={k._id}>
+                        <td className="exec-td-muted" style={{ whiteSpace: "nowrap" }}>
+                          {new Date(k.dateTime || k.createdAt).toLocaleDateString("en-GB")}
+                        </td>
+                        <td className="exec-td-strong">{k.district?.name || "—"}</td>
+                        <td className="exec-td-muted">{k.facility?.name || "—"}</td>
+                        <td className="exec-td-muted">{k.respondentCategory}</td>
+                        <td className="exec-td-muted">{k.respondentSex}</td>
+                        <td className="exec-td-muted">{k.submittedBy?.name || "—"}</td>
+                        <td>
+                          <span
+                            style={{
+                              fontWeight: "bold",
+                              color: k.scorePercentage >= 80 ? "#059669" : k.scorePercentage >= 60 ? "#d97706" : "#dc2626",
+                            }}
+                          >
+                            {k.scorePercentage}%
+                          </span>
+                        </td>
+                        <td>
+                          {k.reviews && k.reviews.length > 0 ? (
+                            <span style={{ color: "#059669", fontWeight: "600" }}>Reviewed</span>
+                          ) : (
+                            <span style={{ color: "#d97706" }}>Pending</span>
+                          )}
+                        </td>
+                        <td style={{ textAlign: "right" }}>
+                          <button className="exec-link-btn" onClick={() => setOpenKapSurvey(k)}>
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </Panel>
+        </div>
+
         <div className="exec-grid-3">
           <Panel title="Why evidence was rejected" subtitle="Reasons recorded on flagged activities" icon={FiShield}>
             {flaggedActivities.length === 0 ? (
@@ -695,6 +921,10 @@ export default function ExecutiveDashboard() {
             <DetailComponent activityId={openActivity._id} canModerate={canModerate} onClose={() => setOpenActivity(null)} onStatusChanged={load} />
           );
         })()}
+
+      {openKapSurvey && (
+        <KapSurveyDetail survey={openKapSurvey} onClose={() => setOpenKapSurvey(null)} onReviewUpdated={load} />
+      )}
     </div>
   );
 }
