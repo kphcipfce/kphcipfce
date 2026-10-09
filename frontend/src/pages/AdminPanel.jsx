@@ -59,6 +59,7 @@ function MembersTab() {
   const [creating, setCreating] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [removingId, setRemovingId] = useState(null);
+  const [updatingGenderId, setUpdatingGenderId] = useState(null);
 
   function load() {
     api.get("/members").then((res) => setMembers(res.data));
@@ -77,6 +78,21 @@ function MembersTab() {
       showToast("error", err.response?.data?.error || "Failed to create social mobilizer");
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function updateGender(id, newGender, memberName) {
+    setUpdatingGenderId(id);
+    try {
+      await api.patch(`/members/${id}`, { gender: newGender });
+      setMembers((prev) =>
+        prev.map((m) => (m._id === id ? { ...m, gender: newGender } : m))
+      );
+      showToast("success", "Gender updated", `Gender for ${memberName} updated to ${newGender}.`);
+    } catch (err) {
+      showToast("error", err.response?.data?.error || "Failed to update gender");
+    } finally {
+      setUpdatingGenderId(null);
     }
   }
 
@@ -141,6 +157,7 @@ function MembersTab() {
               <th>Name</th>
               <th>Email</th>
               <th>Phone</th>
+              <th>Gender</th>
               <th>Role</th>
               <th>Team</th>
               <th>Password</th>
@@ -153,6 +170,28 @@ function MembersTab() {
                 <td>{m.name}</td>
                 <td>{m.email}</td>
                 <td>{m.phone || "—"}</td>
+                <td>
+                  <select
+                    value={m.gender || ""}
+                    disabled={updatingGenderId === m._id}
+                    onChange={(e) => updateGender(m._id, e.target.value, m.name)}
+                    style={{
+                      padding: "4px 8px",
+                      borderRadius: "6px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "0.85rem",
+                      fontWeight: 500,
+                      backgroundColor: m.gender === "male" ? "#e0f2fe" : m.gender === "female" ? "#fce7f3" : "#f1f5f9",
+                      color: m.gender === "male" ? "#0369a1" : m.gender === "female" ? "#be185d" : "#475569",
+                      cursor: "pointer",
+                      outline: "none",
+                    }}
+                  >
+                    <option value="" disabled>Select</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </td>
                 <td>{roleLabel(m.role)}</td>
                 <td>{m.team?.name || "—"}</td>
                 <td>

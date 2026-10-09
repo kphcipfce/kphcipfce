@@ -43,7 +43,12 @@ export async function updateMember(req, res) {
   if (phone !== undefined) member.phone = phone;
   if (active !== undefined) member.active = active;
   if (role !== undefined) member.role = role;
-  if (gender !== undefined) member.gender = gender;
+  if (gender !== undefined) {
+    if (!["male", "female"].includes(gender)) {
+      return res.status(400).json({ error: "gender must be male or female" });
+    }
+    member.gender = gender;
+  }
   if (password) {
     member.passwordHash = await bcrypt.hash(password, 10);
     member.password = password;
