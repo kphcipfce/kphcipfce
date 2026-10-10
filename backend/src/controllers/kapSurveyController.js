@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import ExcelJS from "exceljs";
 import KapSurvey from "../models/KapSurvey.js";
 import KapPlan from "../models/KapPlan.js";
@@ -336,6 +337,102 @@ export async function getKapAnalytics(req, res) {
       pPos: globalPPos, pTotal: globalPTotal,
     });
 
+    // District-wise facility coverage and survey type gender breakdown aggregation
+    const districtPipeline = [
+      ...(req.query.district ? [{ $match: { district: new mongoose.Types.ObjectId(req.query.district) } }] : []),
+      {
+        $lookup: {
+          from: "districts",
+          localField: "district",
+          foreignField: "_id",
+          as: "districtInfo",
+        },
+      },
+      { $unwind: "$districtInfo" },
+      {
+        $lookup: {
+          from: "facilities",
+          localField: "facility",
+          foreignField: "_id",
+          as: "facilityInfo",
+        },
+      },
+      { $unwind: "$facilityInfo" },
+      {
+        $group: {
+          _id: {
+            district: "$districtInfo.name",
+            surveyType: "$respondentCategory",
+            facility: "$facility",
+          },
+          facilityName: { $first: "$facilityInfo.name" },
+          category: { $first: "$facilityInfo.category" },
+          female: {
+            $sum: { $cond: [{ $eq: ["$respondentSex", "Female"] }, 1, 0] },
+          },
+          male: {
+            $sum: { $cond: [{ $eq: ["$respondentSex", "Male"] }, 1, 0] },
+          },
+          facilityGrandTotal: { $sum: 1 },
+        },
+      },
+      { $sort: { facilityName: 1 } },
+      {
+        $group: {
+          _id: {
+            district: "$_id.district",
+            surveyType: "$_id.surveyType",
+          },
+          facilitiesCoveredCount: { $sum: 1 },
+          totalFemale: { $sum: "$female" },
+          totalMale: { $sum: "$male" },
+          surveyTypeGrandTotal: { $sum: "$facilityGrandTotal" },
+          facilities: {
+            $push: {
+              healthFacility: {
+                $concat: ["$facilityName", " (", "$category", ")"],
+              },
+              female: "$female",
+              male: "$male",
+              grandTotal: "$facilityGrandTotal",
+            },
+          },
+        },
+      },
+      { $sort: { "_id.surveyType": 1 } },
+      {
+        $group: {
+          _id: "$_id.district",
+          districtTotalFemale: { $sum: "$totalFemale" },
+          districtTotalMale: { $sum: "$totalMale" },
+          districtGrandTotalSurveys: { $sum: "$surveyTypeGrandTotal" },
+          surveyTypesData: {
+            $push: {
+              surveyType: "$_id.surveyType",
+              facilitiesCoveredCount: "$facilitiesCoveredCount",
+              femaleCount: "$totalFemale",
+              maleCount: "$totalMale",
+              grandTotal: "$surveyTypeGrandTotal",
+              facilities: "$facilities",
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          districtName: "$_id",
+          districtTotalFemale: 1,
+          districtTotalMale: 1,
+          districtGrandTotalSurveys: 1,
+          surveyTypesData: 1,
+        },
+      },
+      { $sort: { districtName: 1 } },
+    ];
+
+    const districtAnalytics = await KapSurvey.aggregate(districtPipeline);
+
     res.json({
       totalSurveys,
       categoryBreakdown,
@@ -349,6 +446,7 @@ export async function getKapAnalytics(req, res) {
         pPos: globalPPos, pTotal: globalPTotal,
       },
       themeKapData,
+      districtAnalytics,
       grmTheme: {
         grmAwareCount,
         safeReportingAwareCount,

@@ -1354,3 +1354,107 @@ fieldset {
   }
 }
 
+/* Responsive District KAP Analytics Grid & Cards */
+.district-kap-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+  width: 100%;
+}
+
+.district-kap-card {
+  padding: 1.25rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.district-kap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 0.6rem;
+}
+
+.district-kap-badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.district-kap-chart-container {
+  width: 100%;
+  height: 260px;
+  min-height: 200px;
+  min-width: 0;
+  position: relative;
+}
+
+.district-kap-table-wrap {
+  margin-top: 0.75rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+.district-kap-table {
+  width: 100%;
+  min-width: 320px;
+  font-size: 0.78rem;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+@media (max-width: 992px) {
+  .district-kap-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .district-kap-card {
+    padding: 0.75rem;
+    border-radius: 10px;
+  }
+
+  .district-kap-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+
+  .district-kap-badges {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 4px;
+  }
+
+  .district-kap-chart-container {
+    height: 220px;
+  }
+
+  .district-kap-table {
+    font-size: 0.72rem;
+    min-width: 290px;
+  }
+
+  .district-kap-table th,
+  .district-kap-table td {
+    padding: 4px 6px !important;
+  }
+}
+
+

@@ -157,6 +157,17 @@ export default function ExecutiveDashboard() {
   const [error, setError] = useState("");
   const [openActivity, setOpenActivity] = useState(null);
   const [exporting, setExporting] = useState(null); // "field" | "coordinator" | "grm" | "kap" | null
+  const [isSmallScreen, setIsSmallScreen] = useState(() => {
+    return typeof window !== "undefined" && window.innerWidth <= 768;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsSmallScreen(window.innerWidth <= 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     Promise.all([api.get("/districts"), api.get("/teams")])
@@ -720,14 +731,14 @@ export default function ExecutiveDashboard() {
 
                 {/* Grouped Bar Chart for KAP Domain Scores across Themes */}
                 {Array.isArray(kapAnalytics.themeKapData) && kapAnalytics.themeKapData.length > 0 && (
-                  <div style={{ marginBottom: "1.5rem", padding: "1.25rem", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "14px" }}>
+                  <div style={{ marginBottom: "1.5rem", padding: isSmallScreen ? "0.85rem" : "1.25rem", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "14px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
                       <div>
                         <h4 style={{ margin: 0, fontSize: "1rem", color: "#1e293b", fontWeight: "600" }}>
                           Theme-wise Knowledge, Attitude &amp; Practice (KAP) % Score Chart
                         </h4>
                         <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "#64748b" }}>
-                          Grouped % positive score distribution across Themes 1 to 9 and Total aggregate
+                          Grouped % positive score distribution across Themes 1 to 9 {isSmallScreen ? "(T1–T9) " : ""}and Total aggregate
                         </p>
                       </div>
 
@@ -746,10 +757,32 @@ export default function ExecutiveDashboard() {
 
                     <div className="exec-chart-box-tall">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={kapAnalytics.themeKapData} margin={{ top: 15, right: 15, left: 0, bottom: 25 }}>
+                        <BarChart
+                          data={kapAnalytics.themeKapData}
+                          margin={{
+                            top: 15,
+                            right: isSmallScreen ? 10 : 15,
+                            left: isSmallScreen ? -15 : 0,
+                            bottom: isSmallScreen ? 15 : 25,
+                          }}
+                        >
                           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                          <XAxis dataKey="themeLabel" interval={0} height={35} tick={{ fontSize: 11, fill: "#475569" }} />
-                          <YAxis domain={[0, 100]} unit="%" allowDecimals={false} width={40} tick={{ fontSize: 11, fill: "#475569" }} />
+                          <XAxis
+                            dataKey="themeLabel"
+                            interval={0}
+                            height={isSmallScreen ? 28 : 35}
+                            tick={{ fontSize: isSmallScreen ? 10 : 11, fill: "#475569" }}
+                            tickFormatter={(label) =>
+                              isSmallScreen ? String(label).replace(/^Theme\s+/i, "T") : label
+                            }
+                          />
+                          <YAxis
+                            domain={[0, 100]}
+                            unit="%"
+                            allowDecimals={false}
+                            width={isSmallScreen ? 32 : 40}
+                            tick={{ fontSize: isSmallScreen ? 10 : 11, fill: "#475569" }}
+                          />
                           <Tooltip
                             formatter={(value, name, item) => {
                               const payload = item.payload;
@@ -759,7 +792,11 @@ export default function ExecutiveDashboard() {
                               else if (name === "Practice [P]") detailStr = ` (${payload.pPos}/${payload.pTotal} positive)`;
                               return [`${value}%${detailStr}`, name];
                             }}
-                            labelFormatter={(label, items) => items?.[0]?.payload?.fullTitle || label}
+                            labelFormatter={(label, items) => {
+                              const full = items?.[0]?.payload?.fullTitle;
+                              if (full) return full;
+                              return String(label).startsWith("T") ? label.replace(/^T(\d+)/, "Theme $1") : label;
+                            }}
                             contentStyle={{ borderRadius: "12px", border: "1px solid #cbd5e1", fontSize: "12px" }}
                           />
                           <Legend verticalAlign="top" height={32} wrapperStyle={{ fontSize: 11 }} />
@@ -768,6 +805,173 @@ export default function ExecutiveDashboard() {
                           <Bar dataKey="Practice" fill="#16a34a" name="Practice [P]" radius={[4, 4, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+
+                {/* Four District-wise KAP Survey Analytics Graphs */}
+                {Array.isArray(kapAnalytics.districtAnalytics) && kapAnalytics.districtAnalytics.length > 0 && (
+                  <div style={{ marginBottom: "1.5rem" }}>
+                    <div style={{ marginBottom: "0.85rem" }}>
+                      <h4 style={{ margin: 0, fontSize: "1rem", color: "#1e293b", fontWeight: "600" }}>
+                        District-wise KAP Survey Analytics &amp; Facility Coverage
+                      </h4>
+                      <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "#64748b" }}>
+                        District-specific facility coverage and survey type breakdown by male and female counts
+                      </p>
+                    </div>
+
+                    <div className="district-kap-grid">
+                      {kapAnalytics.districtAnalytics.map((dist) => {
+                        const chartData = (dist.surveyTypesData || []).map((st) => ({
+                          surveyType: st.surveyType,
+                          Male: st.maleCount,
+                          Female: st.femaleCount,
+                          Total: st.grandTotal,
+                          facilitiesCovered: st.facilitiesCoveredCount,
+                        }));
+
+                        const totalFacilitiesCovered = (dist.surveyTypesData || []).reduce(
+                          (sum, st) => sum + (st.facilitiesCoveredCount || 0),
+                          0
+                        );
+
+                        return (
+                          <div key={dist.districtName} className="district-kap-card">
+                            {/* District Header & Badges */}
+                            <div className="district-kap-header">
+                              <div>
+                                <h4 style={{ margin: 0, fontSize: "0.95rem", color: "#0f172a", fontWeight: "700" }}>
+                                  {dist.districtName} District
+                                </h4>
+                                <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                                  {dist.districtGrandTotalSurveys} surveys across {totalFacilitiesCovered} facility sessions
+                                </span>
+                              </div>
+
+                              <div className="district-kap-badges">
+                                <span
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                    fontSize: "0.75rem",
+                                    fontWeight: "600",
+                                    padding: "2px 8px",
+                                    background: "#e0f2fe",
+                                    color: "#0369a1",
+                                    borderRadius: "6px",
+                                  }}
+                                >
+                                  <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#0284c7" }} />
+                                  Male: {dist.districtTotalMale}
+                                </span>
+                                <span
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                    fontSize: "0.75rem",
+                                    fontWeight: "600",
+                                    padding: "2px 8px",
+                                    background: "#fce7f3",
+                                    color: "#be185d",
+                                    borderRadius: "6px",
+                                  }}
+                                >
+                                  <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#ec4899" }} />
+                                  Female: {dist.districtTotalFemale}
+                                </span>
+                                <span
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                    fontSize: "0.75rem",
+                                    fontWeight: "600",
+                                    padding: "2px 8px",
+                                    background: "#f1f5f9",
+                                    color: "#334155",
+                                    borderRadius: "6px",
+                                  }}
+                                >
+                                  Total: {dist.districtGrandTotalSurveys}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Grouped Bar Chart for this District */}
+                            <div className="district-kap-chart-container">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -15, bottom: 20 }}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                                  <XAxis dataKey="surveyType" interval={0} tick={{ fontSize: 10, fill: "#475569" }} />
+                                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "#475569" }} width={30} />
+                                  <Tooltip
+                                    content={({ active, payload, label }) => {
+                                      if (active && payload && payload.length) {
+                                        const data = payload[0].payload;
+                                        return (
+                                          <div
+                                            style={{
+                                              background: "#ffffff",
+                                              padding: "8px 10px",
+                                              border: "1px solid #cbd5e1",
+                                              borderRadius: "8px",
+                                              fontSize: "11px",
+                                              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                                            }}
+                                          >
+                                            <div style={{ fontWeight: "700", marginBottom: "3px", color: "#0f172a" }}>
+                                              {label}
+                                            </div>
+                                            <div style={{ color: "#0284c7" }}>Male: <strong>{data.Male}</strong></div>
+                                            <div style={{ color: "#ec4899" }}>Female: <strong>{data.Female}</strong></div>
+                                            <div style={{ color: "#0f172a", marginTop: "2px" }}>Grand Total: <strong>{data.Total}</strong></div>
+                                            <div style={{ color: "#64748b", marginTop: "3px", borderTop: "1px solid #e2e8f0", paddingTop: "3px" }}>
+                                              Facilities Covered: <strong>{data.facilitiesCovered}</strong>
+                                            </div>
+                                          </div>
+                                        );
+                                      }
+                                      return null;
+                                    }}
+                                  />
+                                  <Legend verticalAlign="top" height={28} iconSize={8} wrapperStyle={{ fontSize: "11px" }} />
+                                  <Bar dataKey="Male" fill="#0284c7" name="Male" radius={[4, 4, 0, 0]} />
+                                  <Bar dataKey="Female" fill="#ec4899" name="Female" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+
+                            {/* Breakdown Table without details by person */}
+                            <div className="district-kap-table-wrap">
+                              <table className="district-kap-table">
+                                <thead>
+                                  <tr style={{ background: "#f8fafc", color: "#475569", borderBottom: "1px solid #e2e8f0" }}>
+                                    <th style={{ padding: "4px 8px" }}>Survey Type</th>
+                                    <th style={{ padding: "4px 8px", textAlign: "center" }}>Facilities Covered</th>
+                                    <th style={{ padding: "4px 8px", textAlign: "right" }}>Female</th>
+                                    <th style={{ padding: "4px 8px", textAlign: "right" }}>Male</th>
+                                    <th style={{ padding: "4px 8px", textAlign: "right" }}>Total</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {(dist.surveyTypesData || []).map((st) => (
+                                    <tr key={st.surveyType} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                                      <td style={{ padding: "4px 8px", fontWeight: "600", color: "#1e293b" }}>{st.surveyType}</td>
+                                      <td style={{ padding: "4px 8px", textAlign: "center", color: "#0369a1", fontWeight: "600" }}>{st.facilitiesCoveredCount}</td>
+                                      <td style={{ padding: "4px 8px", textAlign: "right", color: "#be185d" }}>{st.femaleCount}</td>
+                                      <td style={{ padding: "4px 8px", textAlign: "right", color: "#0284c7" }}>{st.maleCount}</td>
+                                      <td style={{ padding: "4px 8px", textAlign: "right", fontWeight: "700", color: "#0f172a" }}>{st.grandTotal}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
