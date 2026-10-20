@@ -1289,6 +1289,37 @@ fieldset {
   box-shadow: 0 1px 0 var(--gray-100);
 }
 
+/* KAP survey records list gets long — keep it in a short box with a visible scrollbar */
+.kap-records-scroll {
+  max-height: 420px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+
+.kap-records-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.kap-records-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.kap-records-scroll::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+
+.kap-records-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #f8fafc;
+}
+
 .table-wrapper table,
 .table-scroll table,
 .table-wrapper .table,

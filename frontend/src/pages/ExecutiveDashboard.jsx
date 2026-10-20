@@ -638,8 +638,8 @@ export default function ExecutiveDashboard() {
           </Panel>
         </div>
 
-        {/* KAP Survey Records & Theme Analytics Panel */}
-        <div className="exec-grid-3">
+        {/* KAP Survey Records & Theme Analytics Panel — full width, not in the 3-col grid */}
+        <div>
           <Panel
             title="KAP Survey Records & Theme Analytics"
             subtitle="Knowledge, Attitudes & Practices domain breakdown (% scores) and questionnaire records"
@@ -986,6 +986,7 @@ export default function ExecutiveDashboard() {
               {kapSurveys.length === 0 ? (
                 <Empty label="No KAP Survey records submitted yet" />
               ) : (
+                <div className="kap-records-scroll">
                 <table className="exec-table">
                   <thead>
                     <tr>
@@ -1037,6 +1038,7 @@ export default function ExecutiveDashboard() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
           </Panel>

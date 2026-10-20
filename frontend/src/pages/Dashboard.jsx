@@ -985,7 +985,7 @@ function MonitoringDashboard() {
               <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "#64748b" }}>Inspect questionnaire details and review status</p>
             </div>
 
-            <div className="table-scroll">
+            <div className="table-scroll kap-records-scroll">
               <table className="table">
                 <thead>
                   <tr style={{ background: "#f8fafc" }}>
