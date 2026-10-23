@@ -84,6 +84,8 @@ export default function MyActivities() {
     e.preventDefault();
     if (!selectedWeek) return showToast("error", "Select which planned week you're fulfilling.");
     if (photos.length === 0) return showToast("error", "At least one photo is required.");
+    if (Number(maleAttendees) + Number(femaleAttendees) <= 0)
+      return showToast("error", "Enter at least one male or female participant.");
     setBusy(true);
 
     try {

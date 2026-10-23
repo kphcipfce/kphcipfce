@@ -81,6 +81,9 @@ export async function createCoordinatorActivity(req, res) {
   ) {
     return res.status(400).json({ error: "activityType, facility, plan/week, and all report fields are required" });
   }
+  if ((Number(maleAttendees) || 0) + (Number(femaleAttendees) || 0) <= 0) {
+    return res.status(400).json({ error: "At least one male or female participant is required" });
+  }
   if (!req.files || req.files.length === 0) return res.status(400).json({ error: "At least one photo required" });
 
   // Defense in depth: verify the facility is real and actually in this coordinator's own
