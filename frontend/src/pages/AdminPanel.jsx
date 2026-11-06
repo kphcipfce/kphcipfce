@@ -210,7 +210,7 @@ function MembersTab() {
                         className={savingPassword ? "btn-loading" : ""}
                         onClick={() => savePassword(m._id)}
                       >
-                        <span className="btn-label">Save</span>
+                        <span className="btn-label">Save 😍</span>
                         {savingPassword && <span className="btn-spinner" />}
                       </button>
                       <button
