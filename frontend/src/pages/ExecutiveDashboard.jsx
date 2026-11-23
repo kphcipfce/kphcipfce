@@ -62,6 +62,7 @@ const ACTIVITY_TYPES = [
   "Environmental awareness & HCWM",
   "SEA/SH",
   "GRM capacity building of PCMC & HMC",
+  "Coordination meeting",
 ];
 const STATUSES = [
   { value: "submitted", label: "Submitted (awaiting review)" },

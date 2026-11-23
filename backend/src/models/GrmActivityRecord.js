@@ -12,13 +12,14 @@ const editLogEntry = new mongoose.Schema(
 // A GRM Focal Person's own training activities — a separate collection again (same reasoning
 // as CoordinatorActivityRecord vs ActivityRecord): keeps this data structurally out of the
 // Field Tracker export and every other report built around social mobilizers/coordinators.
-// Only one activity type exists here, unlike the coordinator's two.
+export const GRM_ACTIVITY_TYPES = ["GRM capacity building of PCMC & HMC", "Coordination meeting"];
+
 const grmActivityRecordSchema = new mongoose.Schema(
   {
     district: { type: mongoose.Schema.Types.ObjectId, ref: "District", required: true },
     submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Member", required: true },
     dateTime: { type: Date, required: true },
-    activityType: { type: String, enum: ["GRM capacity building of PCMC & HMC"], required: true },
+    activityType: { type: String, enum: GRM_ACTIVITY_TYPES, required: true },
     facility: { type: mongoose.Schema.Types.ObjectId, ref: "Facility", required: true },
     isRefresher: { type: Boolean, default: false },
     catchmentArea: { type: String, required: true, trim: true },

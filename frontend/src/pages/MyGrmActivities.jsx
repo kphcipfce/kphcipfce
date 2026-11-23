@@ -8,9 +8,9 @@ import SubmissionSuccess from "../components/SubmissionSuccess";
 import { CameraIcon } from "../components/icons";
 import { compressImage } from "../utils/compressImage";
 
-// Only one activity type exists for GRM Focal Persons, unlike the District Coordinator's two —
-// no dropdown needed, it's fixed.
-const ACTIVITY_TYPE = "GRM capacity building of PCMC & HMC";
+// Must match the enum in backend/src/models/GrmActivityRecord.js.
+const CAPACITY_BUILDING_TYPE = "GRM capacity building of PCMC & HMC";
+const ACTIVITY_TYPES = [CAPACITY_BUILDING_TYPE, "Coordination meeting"];
 const VISIT_STATUSES = ["Pending", "In Progress", "Completed", "Deferred / Rescheduled"];
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -24,6 +24,7 @@ export default function MyGrmActivities() {
   const [plans, setPlans] = useState(null); // null = still loading, [] = loaded but none assigned
   const [facility, setFacility] = useState("");
   const [catchmentArea, setCatchmentArea] = useState("");
+  const [activityType, setActivityType] = useState(ACTIVITY_TYPES[0]);
   const [isRefresher, setIsRefresher] = useState(false);
   const [selectedWeekKey, setSelectedWeekKey] = useState("");
   const [plannedActivity, setPlannedActivity] = useState("");
@@ -101,9 +102,10 @@ export default function MyGrmActivities() {
       });
 
       const form = new FormData();
-      form.append("activityType", ACTIVITY_TYPE);
+      form.append("activityType", activityType);
       form.append("facility", facility);
-      form.append("isRefresher", isRefresher);
+      // Refresher only applies to trainings, not coordination meetings.
+      form.append("isRefresher", activityType === CAPACITY_BUILDING_TYPE && isRefresher);
       form.append("catchmentArea", catchmentArea);
       form.append("plan", selectedWeek.planId);
       form.append("planWeek", selectedWeek.weekId);
@@ -203,13 +205,19 @@ export default function MyGrmActivities() {
 
         <label>
           Activity type
-          <input value={ACTIVITY_TYPE} disabled />
+          <select value={activityType} onChange={(e) => setActivityType(e.target.value)}>
+            {ACTIVITY_TYPES.map((t) => (
+              <option key={t}>{t}</option>
+            ))}
+          </select>
         </label>
 
-        <label className="checkbox-row">
-          <input type="checkbox" checked={isRefresher} onChange={(e) => setIsRefresher(e.target.checked)} />
-          This is a refresher training
-        </label>
+        {activityType === CAPACITY_BUILDING_TYPE && (
+          <label className="checkbox-row">
+            <input type="checkbox" checked={isRefresher} onChange={(e) => setIsRefresher(e.target.checked)} />
+            This is a refresher training
+          </label>
+        )}
 
         <label>
           Planned week

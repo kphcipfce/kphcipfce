@@ -43,7 +43,7 @@ function uploadToCloudinary(buffer) {
 }
 
 // A GRM Focal Person's own training submission — same photo/duplicate/GPS/EXIF handling as a
-// District Coordinator's, but there's only one activity type here, and one focal person per
+// District Coordinator's, with its own activity types (capacity building / coordination meeting), and one focal person per
 // district (no team, no attendee list), so occupancy is just "has this plan week been used".
 export async function createGrmActivity(req, res) {
   const {
